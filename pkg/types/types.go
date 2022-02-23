@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type Datum struct {
 	E ID
@@ -20,11 +23,11 @@ type Int int
 type Bool bool
 type Inst time.Time
 
-func (String) IsValue()
-func (Int) IsValue()
-func (Bool) IsValue()
-func (Inst) IsValue()
-func (ID) IsValue()
+func (String) IsValue() {}
+func (Int) IsValue()    {}
+func (Bool) IsValue()   {}
+func (Inst) IsValue()   {}
+func (ID) IsValue()     {}
 
 type Void struct{}
 
@@ -103,10 +106,9 @@ type Database interface {
 type IndexType int
 
 const (
-	Undefined IndexType = iota
-	EAV
-	AEV
-	AVE
+	EAV IndexType = 1
+	AEV IndexType = 2
+	AVE IndexType = 3
 )
 
 type Selection struct {
@@ -126,11 +128,11 @@ type ESel interface {
 	IsESel()
 }
 
-func (ID) IsESel()
-func (LookupRef) ISESel()
-func (Ident) IsESel()
-func (ESet) IsESel()
-func (ERange) IsESel()
+func (ID) IsESel()        {}
+func (LookupRef) IsESel() {}
+func (Ident) IsESel()     {}
+func (ESet) IsESel()      {}
+func (ERange) IsESel()    {}
 
 type ASet map[ASel]Void
 
@@ -143,12 +145,12 @@ type ASel interface {
 	IsASel()
 }
 
-func (ID) IsASel()
-func (LookupRef) IsASel()
-func (Ident) IsASel()  {}
-func (Attr) IsASel()   {}
-func (ASet) IsASel()   {}
-func (ARange) IsASel() {}
+func (ID) IsASel()        {}
+func (LookupRef) IsASel() {}
+func (Ident) IsASel()     {}
+func (Attr) IsASel()      {}
+func (ASet) IsASel()      {}
+func (ARange) IsASel()    {}
 
 type VSet map[VSel]Void
 
@@ -161,13 +163,13 @@ type VSel interface {
 	IsVSel()
 }
 
-func (ID) IsVSel()
-func (String) IsVSel()
-func (Int) IsVSel()
-func (Bool) IsVSel()
-func (Inst) IsVSel()
-func (VSet) IsVSel()
-func (VRange) IsVSel()
+func (ID) IsVSel()     {}
+func (String) IsVSel() {}
+func (Int) IsVSel()    {}
+func (Bool) IsVSel()   {}
+func (Inst) IsVSel()   {}
+func (VSet) IsVSel()   {}
+func (VRange) IsVSel() {}
 
 type ReadError interface{}
 type WriteError interface{}
@@ -176,4 +178,21 @@ type Result interface{}
 type Connection interface {
 	Read(func(db Database) Result) (Result, ReadError)
 	Write(request Request) (Transaction, WriteError)
+}
+
+var ErrInvalidValue error = errors.New("invalid value")
+
+func ValueOf(x interface{}) (Value, error) {
+	switch typed := x.(type) {
+	case string:
+		return String(typed), nil
+	case int:
+		return Int(typed), nil
+	case bool:
+		return Bool(typed), nil
+	case time.Time:
+		return Inst(typed), nil
+	default:
+		return nil, ErrInvalidValue
+	}
 }
