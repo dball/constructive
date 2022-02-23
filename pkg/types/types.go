@@ -106,9 +106,9 @@ type Database interface {
 type IndexType int
 
 const (
-	EAV IndexType = 1
-	AEV IndexType = 2
-	AVE IndexType = 3
+	IndexEAV IndexType = 1
+	IndexAEV IndexType = 2
+	IndexAVE IndexType = 3
 )
 
 type Selection struct {
