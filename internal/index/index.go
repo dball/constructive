@@ -1,8 +1,6 @@
 package index
 
 import (
-	"sync"
-
 	"github.com/dball/constructive/internal/compare"
 	. "github.com/dball/constructive/pkg/types"
 
@@ -10,13 +8,17 @@ import (
 )
 
 type BTreeIndex struct {
-	lock sync.Mutex
 	tree btree.BTree
 }
 
 type Node struct {
 	kind  IndexType
 	datum Datum
+}
+
+type Iterator interface {
+	Next() Datum
+	HasNext() bool
 }
 
 func compareKind(kind IndexType) compare.Fn {
@@ -80,3 +82,49 @@ func (idx *BTreeIndex) InsertOne(d Datum) Datum {
 		return d
 	}
 }
+
+var void struct{}
+
+func (idx *BTreeIndex) Select(c Constraints) Iterator {
+	// TODO maybe Iterator should be a chan of datums
+	switch c.IndexType {
+	case IndexEAV:
+		switch e := c.E.(type) {
+		case IDScalar:
+			floor := Node{kind: IndexEAV, datum: Datum{E: ID(e)}}
+			ceiling := Node{kind: IndexEAV, datum: Datum{E: ID(e) + 1}}
+			idx.tree.AscendRange(ceiling, floor, iterator)
+		case IDSet:
+			// TODO for each e, idx. ascend range from e to e+1
+		case IDRange:
+			floor := Node{kind: IndexEAV, datum: Datum{E: e.min}}
+			ceiling := Node{kind: IndexEAV, datum: Datum{E: e.max + 1}}
+			idx.tree.AscendRange(ceiling, floor, iterator)
+		}
+	}
+}
+
+// The Constraints builder assumes the responsibility of ensuring the
+// components are satisfiable by the index, and that sets have been
+// converted to ranges if desirable.
+type Constraints struct {
+	IndexType IndexType
+	E         IDConstraint
+	A         IDConstraint
+	V         VSel
+}
+
+type IDConstraint interface {
+	IsIDConstraint()
+}
+
+type IDScalar ID
+type IDSet map[ID]Void
+type IDRange struct {
+	min ID
+	max ID
+}
+
+func (IDScalar) IsIDConstraint() {}
+func (IDSet) IsIDConstraint()    {}
+func (IDRange) IsIDConstraint()  {}

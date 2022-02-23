@@ -52,8 +52,6 @@ type TempID string
 
 type TxnID struct{}
 
-type Attr string
-
 type Ident string
 
 type Claim struct {
@@ -87,7 +85,6 @@ type ARef interface {
 func (ID) IsARef()        {}
 func (LookupRef) IsARef() {}
 func (Ident) IsARef()     {}
-func (Attr) IsARef()      {}
 
 type Transaction struct {
 	ID     ID
@@ -148,7 +145,6 @@ type ASel interface {
 func (ID) IsASel()        {}
 func (LookupRef) IsASel() {}
 func (Ident) IsASel()     {}
-func (Attr) IsASel()      {}
 func (ASet) IsASel()      {}
 func (ARange) IsASel()    {}
 
