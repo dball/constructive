@@ -25,7 +25,7 @@ func Test_Seq(t *testing.T) {
 		assert.ElementsMatch(t, []ID{5, 7}, actual)
 	})
 	t.Run("range", func(t *testing.T) {
-		r := Range{min: ID(1), max: ID(20)}
+		r := Range{Min: ID(1), Max: ID(20)}
 		actual := []ID{}
 		for id := range r.Seq().Values {
 			actual = append(actual, id)

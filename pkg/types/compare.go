@@ -54,6 +54,20 @@ func Compare(v1 Value, v2 Value) int {
 		default:
 			return 0
 		}
+	case String:
+		x2, ok := v2.(String)
+		if !ok {
+			return typeCompare(x1) - typeCompare(x2)
+		}
+		switch {
+		case x1 < x2:
+			return -1
+		case x1 > x2:
+			return 1
+		default:
+			return 0
+		}
 	}
+
 	panic("welp")
 }

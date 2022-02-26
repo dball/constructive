@@ -17,8 +17,8 @@ type Constraint interface {
 type Scalar ID
 type Set map[ID]Void
 type Range struct {
-	min ID
-	max ID
+	Min ID
+	Max ID
 }
 
 func (scalar Scalar) Seq() Seq {
@@ -45,7 +45,7 @@ func (r Range) Seq() Seq {
 	cls := make(chan Void)
 	go func() {
 	OUTER:
-		for id := r.min; id <= r.max; id++ {
+		for id := r.Min; id <= r.Max; id++ {
 			select {
 			case values <- id:
 			case <-cls:
@@ -54,6 +54,6 @@ func (r Range) Seq() Seq {
 		}
 		close(values)
 	}()
-	l := r.max - r.min + 1
+	l := r.Max - r.Min + 1
 	return Seq{Close: cls, Length: int(l), Values: values}
 }

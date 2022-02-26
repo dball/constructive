@@ -167,13 +167,15 @@ func (idx *BTreeIndex) doSearch(search rangeSearch) Seq {
 	iter := func(item btree.Item) bool {
 		node := item.(Node)
 		datum := node.datum
-		if search.terminator != nil && search.terminator(datum) {
+		if node.kind != search.indexType || search.terminator != nil && search.terminator(datum) {
+			close(datums)
 			return false
 		}
 		if search.filter == nil || search.filter(datum) {
 			select {
 			case datums <- datum:
 			case <-cls:
+				close(datums)
 				return false
 			}
 		}
@@ -183,12 +185,14 @@ func (idx *BTreeIndex) doSearch(search rangeSearch) Seq {
 	return seq
 }
 
-func (idx *BTreeIndex) Select(c Constraints) Seq {
+func (idx *BTreeIndex) Select(sel Selection) Seq {
+	c := idx.buildConstraints(sel)
 	searches := buildRangeSearches(c)
-	datums := make(chan Datum)
+	datums := make(chan Datum, 16)
 	cls := make(chan Void)
 	seq := Seq{Values: datums, Close: cls}
 	go func() {
+	OUTER:
 		// If we don't care to retain sequentiality, these could be concurrent
 		for _, search := range searches {
 			sseq := idx.doSearch(search)
@@ -197,10 +201,38 @@ func (idx *BTreeIndex) Select(c Constraints) Seq {
 				datums <- datum
 			case <-cls:
 				sseq.Close <- Void{}
+				break OUTER
 			}
 		}
+		close(datums)
 	}()
 	return seq
+}
+
+func (idx *BTreeIndex) buildConstraints(sel Selection) Constraints {
+	c := Constraints{}
+	switch e := sel.E.(type) {
+	case ID:
+		c.E = ids.Scalar(e)
+	case LookupRef:
+		panic("TODO")
+	case Ident:
+		panic("TODO")
+	case ESet:
+		panic("TODO need to resolve e readref")
+	case ERange:
+		panic("TODO need to resolve e readref")
+	default:
+		panic("TODO nope")
+	}
+	switch a := sel.A.(type) {
+	case ID:
+		c.A = ids.Scalar(a)
+	default:
+		panic("TODO")
+	}
+	c.V = sel.V
+	return c
 }
 
 // The Constraints builder assumes the responsibility of ensuring the
