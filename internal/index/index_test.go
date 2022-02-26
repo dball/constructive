@@ -1,6 +1,7 @@
 package index
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/dball/constructive/pkg/types"
@@ -46,6 +47,24 @@ func TestSelect(t *testing.T) {
 	assert.Equal(t, D(ID(1000), ID(1), String("Donald"), ID(100)), datum)
 }
 
+func TestSelectLots(t *testing.T) {
+	idx := BuildIndex()
+	es := []ID{1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009}
+	as := []ID{1, 2, 3, 4, 5}
+	v := String("a")
+	tid := ID(100)
+	for _, e := range es {
+		for _, a := range as {
+			idx.InsertOne(D(e, a, v, tid))
+		}
+	}
+	// TODO this is giving us 1, not 5 - is this due to channel closing foo?
+	t.Run("just one e", func(t *testing.T) {
+		datums := slurp(idx.Select(Selection{E: ID(1005)}))
+		assert.Equal(t, 5, len(datums))
+	})
+}
+
 func Test_doSearch(t *testing.T) {
 	idx := BuildIndex()
 	idx.InsertOne(D(1000, 1, String("Donald"), 100))
@@ -66,4 +85,12 @@ func Test_doSearch(t *testing.T) {
 	}
 	assert.Equal(t, 1, count)
 	assert.Equal(t, D(ID(1000), ID(1), String("Donald"), ID(100)), datum)
+}
+
+func slurp(seq Seq) (datums []Datum) {
+	for datum := range seq.Values {
+		fmt.Println("Received", datum)
+		datums = append(datums, datum)
+	}
+	return datums
 }

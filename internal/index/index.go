@@ -1,6 +1,8 @@
 package index
 
 import (
+	"fmt"
+
 	"github.com/dball/constructive/internal/compare"
 	"github.com/dball/constructive/internal/ids"
 	. "github.com/dball/constructive/pkg/types"
@@ -118,7 +120,10 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 		if as.Length != 0 {
 			searchCount *= as.Length
 		}
-		filter := buildValueFilter(c.V).Pred
+		var filter predicate
+		if c.V != nil {
+			filter = buildValueFilter(c.V).Pred
+		}
 		searches := make([]rangeSearch, 0, searchCount)
 		for e := range es.Values {
 			if c.A != nil {
@@ -161,23 +166,28 @@ func (idx *BTreeIndex) doSearch(search rangeSearch) Seq {
 	if !search.ascending {
 		panic("TODO")
 	}
-	datums := make(chan Datum, 16)
+	datums := make(chan Datum)
 	cls := make(chan Void)
 	seq := Seq{Values: datums, Close: cls}
 	iter := func(item btree.Item) bool {
 		node := item.(Node)
 		datum := node.datum
+		fmt.Println("inspecting node", datum)
 		if node.kind != search.indexType || search.terminator != nil && search.terminator(datum) {
+			fmt.Println("terminating")
 			close(datums)
 			return false
 		}
 		if search.filter == nil || search.filter(datum) {
 			select {
 			case datums <- datum:
+				fmt.Println("accepted node", datum)
 			case <-cls:
 				close(datums)
 				return false
 			}
+		} else {
+			fmt.Println("rejected node", datum)
 		}
 		return true
 	}
@@ -197,13 +207,17 @@ func (idx *BTreeIndex) Select(sel Selection) Seq {
 		for _, search := range searches {
 			sseq := idx.doSearch(search)
 			select {
-			case datum := <-sseq.Values:
+			case datum, ok := <-sseq.Values:
+				if !ok {
+					continue
+				}
 				datums <- datum
 			case <-cls:
 				sseq.Close <- Void{}
 				break OUTER
 			}
 		}
+		fmt.Println("closing select datums")
 		close(datums)
 	}()
 	return seq
@@ -228,6 +242,7 @@ func (idx *BTreeIndex) buildConstraints(sel Selection) Constraints {
 	switch a := sel.A.(type) {
 	case ID:
 		c.A = ids.Scalar(a)
+	case nil:
 	default:
 		panic("TODO")
 	}
