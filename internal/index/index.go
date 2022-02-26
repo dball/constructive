@@ -126,8 +126,11 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 		}
 		searches := make([]rangeSearch, 0, searchCount)
 		for e := range es.Values {
+			// The way golang closures and range blocks work is the gift that keeps on taking.
+			e := e
 			if c.A != nil {
 				for a := range as.Values {
+					a := a
 					search := rangeSearch{
 						indexType:  indexType,
 						start:      Datum{E: e, A: a},
@@ -237,21 +240,10 @@ func (idx *BTreeIndex) Select(sel Selection) Seq {
 }
 
 func (idx *BTreeIndex) buildConstraints(sel Selection) Constraints {
-	c := Constraints{}
-	switch e := sel.E.(type) {
-	case ID:
-		c.E = ids.Scalar(e)
-	case LookupRef:
-		panic("TODO")
-	case Ident:
-		panic("TODO")
-	case ESet:
-		panic("TODO need to resolve e readref")
-	case ERange:
-		panic("TODO need to resolve e readref")
-	default:
-		panic("TODO nope")
+	c := Constraints{
+		E: idx.resolveESel(sel.E),
 	}
+	// TODO also resolveASel
 	switch a := sel.A.(type) {
 	case ID:
 		c.A = ids.Scalar(a)
@@ -261,6 +253,30 @@ func (idx *BTreeIndex) buildConstraints(sel Selection) Constraints {
 	}
 	c.V = sel.V
 	return c
+}
+
+func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
+	switch e := sel.(type) {
+	case ID:
+		return ids.Scalar(e)
+	case LookupRef:
+		panic("TODO")
+	case Ident:
+		panic("TODO")
+	case ESet:
+		r := make(ids.Set, len(e))
+		for esel := range e {
+			seq := idx.resolveESel(esel).Seq()
+			for id := range seq.Values {
+				r[id] = Void{}
+			}
+		}
+		return r
+	case ERange:
+		panic("TODO need to resolve e readref")
+	default:
+		panic("TODO nope")
+	}
 }
 
 // The Constraints builder assumes the responsibility of ensuring the

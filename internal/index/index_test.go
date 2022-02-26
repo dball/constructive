@@ -66,11 +66,11 @@ func TestSelectLots(t *testing.T) {
 		datums := slurp(idx.Select(Selection{E: ID(1005), A: ID(3)}))
 		assert.Equal(t, 1, len(datums))
 	})
-	t.Run("three es", func(t *testing.T) {
-		datums := slurp(idx.Select(Selection{E: ESet{ID(1005): Void{}, ID(1003): Void{}, ID(1009): Void{}}}))
-		assert.Equal(t, 5, len(datums))
+	t.Run("two e in a set", func(t *testing.T) {
+		fmt.Println("-----------------------------------------------")
+		datums := slurp(idx.Select(Selection{E: ESet{ID(1006): Void{}, ID(1004): Void{}}}))
+		assert.Equal(t, 10, len(datums))
 	})
-
 }
 
 func Test_doSearch(t *testing.T) {
