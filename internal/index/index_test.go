@@ -58,11 +58,19 @@ func TestSelectLots(t *testing.T) {
 			idx.InsertOne(D(e, a, v, tid))
 		}
 	}
-	// TODO this is giving us 1, not 5 - is this due to channel closing foo?
 	t.Run("just one e", func(t *testing.T) {
 		datums := slurp(idx.Select(Selection{E: ID(1005)}))
 		assert.Equal(t, 5, len(datums))
 	})
+	t.Run("an e and an a", func(t *testing.T) {
+		datums := slurp(idx.Select(Selection{E: ID(1005), A: ID(3)}))
+		assert.Equal(t, 1, len(datums))
+	})
+	t.Run("three es", func(t *testing.T) {
+		datums := slurp(idx.Select(Selection{E: ESet{ID(1005): Void{}, ID(1003): Void{}, ID(1009): Void{}}}))
+		assert.Equal(t, 5, len(datums))
+	})
+
 }
 
 func Test_doSearch(t *testing.T) {

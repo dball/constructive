@@ -170,6 +170,12 @@ func (idx *BTreeIndex) doSearch(search rangeSearch) Seq {
 	cls := make(chan Void)
 	seq := Seq{Values: datums, Close: cls}
 	iter := func(item btree.Item) bool {
+		select {
+		case <-cls:
+			close(datums)
+			return false
+		default:
+		}
 		node := item.(Node)
 		datum := node.datum
 		fmt.Println("inspecting node", datum)
@@ -179,13 +185,8 @@ func (idx *BTreeIndex) doSearch(search rangeSearch) Seq {
 			return false
 		}
 		if search.filter == nil || search.filter(datum) {
-			select {
-			case datums <- datum:
-				fmt.Println("accepted node", datum)
-			case <-cls:
-				close(datums)
-				return false
-			}
+			fmt.Println("accepted node", datum)
+			datums <- datum
 		} else {
 			fmt.Println("rejected node", datum)
 		}
@@ -206,15 +207,27 @@ func (idx *BTreeIndex) Select(sel Selection) Seq {
 		// If we don't care to retain sequentiality, these could be concurrent
 		for _, search := range searches {
 			sseq := idx.doSearch(search)
-			select {
-			case datum, ok := <-sseq.Values:
-				if !ok {
-					continue
+			for {
+				fmt.Println("select waiting for datum")
+				select {
+				case datum, ok := <-sseq.Values:
+					if !ok {
+						fmt.Println("sseq is closed")
+						continue OUTER
+					}
+					select {
+					case datums <- datum:
+						fmt.Println("conveyed datum", datum)
+					case <-cls:
+						fmt.Println("closed while trying to write datum")
+						sseq.Close <- Void{}
+						break OUTER
+					}
+				case <-cls:
+					fmt.Println("closed while trying to read datum")
+					sseq.Close <- Void{}
+					break OUTER
 				}
-				datums <- datum
-			case <-cls:
-				sseq.Close <- Void{}
-				break OUTER
 			}
 		}
 		fmt.Println("closing select datums")
