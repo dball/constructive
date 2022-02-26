@@ -84,28 +84,89 @@ func (idx *BTreeIndex) InsertOne(d Datum) Datum {
 	}
 }
 
-func (idx *BTreeIndex) Select(c Constraints) Seq {
-	var indexType IndexType
+type predicate func(Datum) bool
+
+type rangeSearch struct {
+	indexType  IndexType
+	start      Datum
+	ascending  bool
+	filter     predicate
+	terminator predicate
+}
+
+// TODO if this returned a seq of range searches, we could thread any close
+// signal from the search consumer back to the id seqs and be maximally lazy.
+func buildRangeSearches(c Constraints) []rangeSearch {
+	var es ids.Seq
 	if c.E != nil {
-		indexType = IndexEAV
-	} else if c.A != nil {
-		indexType = IndexAVE
+		es = c.E.Seq()
 	}
-	filters := make([]func(d Datum) bool, 0, 2)
+	var as ids.Seq
+	if c.A != nil {
+		as = c.A.Seq()
+	}
+	var indexType IndexType
+	searchCount := 1
+	switch {
+	case c.E != nil:
+		indexType = IndexEAV
+		searchCount *= es.Length
+		if as.Length != 0 {
+			searchCount *= as.Length
+		}
+		filter := buildValueFilter(c.V).Pred
+		searches := make([]rangeSearch, 0, searchCount)
+		for e := range es.Values {
+			if c.A != nil {
+				for a := range as.Values {
+					search := rangeSearch{
+						indexType:  indexType,
+						start:      Datum{E: e, A: a},
+						ascending:  true,
+						filter:     filter,
+						terminator: func(d Datum) bool { return d.E > e || d.A > a },
+					}
+					searches = append(searches, search)
+				}
+			} else {
+				search := rangeSearch{
+					indexType:  indexType,
+					start:      Datum{E: e},
+					ascending:  true,
+					filter:     filter,
+					terminator: func(d Datum) bool { return d.E > e },
+				}
+				searches = append(searches, search)
+			}
+		}
+		return searches
+	case c.A != nil:
+		indexType = IndexAVE
+		searchCount *= as.Length
+		if es.Length != 0 {
+			searchCount *= es.Length
+		}
+		panic("TODO")
+	default:
+		panic("TODO")
+	}
+}
+
+func (idx *BTreeIndex) doSearch(search rangeSearch) Seq {
+	start := Node{kind: search.indexType, datum: search.start}
+	if !search.ascending {
+		panic("TODO")
+	}
 	datums := make(chan Datum, 16)
 	cls := make(chan Void)
 	seq := Seq{Values: datums, Close: cls}
 	iter := func(item btree.Item) bool {
 		node := item.(Node)
 		datum := node.datum
-		pass := true
-		for _, filter := range filters {
-			if !filter(datum) {
-				pass = false
-				break
-			}
+		if search.terminator != nil && search.terminator(datum) {
+			return false
 		}
-		if pass {
+		if search.filter == nil || search.filter(datum) {
 			select {
 			case datums <- datum:
 			case <-cls:
@@ -114,17 +175,28 @@ func (idx *BTreeIndex) Select(c Constraints) Seq {
 		}
 		return true
 	}
-	switch indexType {
-	case IndexEAV:
-		if c.V != nil {
-			// TODO construct and append filter from VSel
+	go idx.tree.AscendGreaterOrEqual(start, iter)
+	return seq
+}
+
+func (idx *BTreeIndex) Select(c Constraints) Seq {
+	searches := buildRangeSearches(c)
+	datums := make(chan Datum)
+	cls := make(chan Void)
+	seq := Seq{Values: datums, Close: cls}
+	go func() {
+		// If we don't care to retain sequentiality, these could be concurrent
+		for _, search := range searches {
+			sseq := idx.doSearch(search)
+			select {
+			case datum := <-sseq.Values:
+				datums <- datum
+			case <-cls:
+				sseq.Close <- Void{}
+			}
 		}
-		if c.E == nil {
-			go idx.tree.Ascend(iter)
-			return seq
-		}
-	}
-	panic("TODO")
+	}()
+	return seq
 }
 
 // The Constraints builder assumes the responsibility of ensuring the
@@ -136,34 +208,33 @@ type Constraints struct {
 	V VSel
 }
 
-// Filters filter datums.
 // TODO how do we indicate and handle open/closedness on the bounds?
-type Filter struct {
-	Pred func(datum Datum) bool
+type ValueFilter struct {
+	Pred predicate
 	Min  Value
 	Max  Value
 }
 
-var matchesNone = Filter{Pred: func(datum Datum) bool { return false }}
+var matchesNoValue = ValueFilter{Pred: func(datum Datum) bool { return false }}
 
-func BuildVSelFilter(vsel VSel) Filter {
+func buildValueFilter(vsel VSel) ValueFilter {
 	switch typed := vsel.(type) {
 	case ID:
-		return Filter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
+		return ValueFilter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
 	case String:
-		return Filter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
+		return ValueFilter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
 	case Int:
-		return Filter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
+		return ValueFilter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
 	case Bool:
-		return Filter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
+		return ValueFilter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
 	case Inst:
-		return Filter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
+		return ValueFilter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
 	case VSet:
-		filters := make([]Filter, 0, len(typed))
+		filters := make([]ValueFilter, 0, len(typed))
 		for v, _ := range typed {
-			filters = append(filters, BuildVSelFilter(v))
+			filters = append(filters, buildValueFilter(v))
 		}
-		return Filter{
+		return ValueFilter{
 			Pred: func(datum Datum) bool {
 				for _, filter := range filters {
 					if filter.Pred(datum) {
@@ -174,14 +245,6 @@ func BuildVSelFilter(vsel VSel) Filter {
 			},
 		}
 	case VRange:
-		// min and max
-		// min and no max
-		// max and no min
-
-		// id, string, int, bool, inst
-
-		// we may apply the filter to many datums, so type switches that don't
-		// depend on the datum should be performed outside the Pred method
 		var exemplar Value
 		if typed.Min != nil {
 			exemplar = typed.Min
@@ -189,7 +252,7 @@ func BuildVSelFilter(vsel VSel) Filter {
 			exemplar = typed.Max
 		}
 		if exemplar == nil {
-			return matchesNone
+			return matchesNoValue
 		}
 		var ok bool
 		switch exemplar.(type) {
@@ -199,28 +262,28 @@ func BuildVSelFilter(vsel VSel) Filter {
 			if typed.Min != nil {
 				min, ok = typed.Min.(ID)
 				if !ok {
-					return matchesNone
+					return matchesNoValue
 				}
 			}
 			if typed.Max != nil {
 				max, ok = typed.Max.(ID)
 				if !ok {
-					return matchesNone
+					return matchesNoValue
 				}
 			}
 			if typed.Min != nil {
 				if typed.Max != nil {
-					return Filter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
+					return ValueFilter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
 						id, ok := datum.V.(ID)
 						return ok && id >= min && id <= max
 					}}
 				}
-				return Filter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
+				return ValueFilter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
 					id, ok := datum.V.(ID)
 					return ok && id >= min
 				}}
 			}
-			return Filter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
+			return ValueFilter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
 				id, ok := datum.V.(ID)
 				return ok && id <= max
 			}}
@@ -230,35 +293,41 @@ func BuildVSelFilter(vsel VSel) Filter {
 			if typed.Min != nil {
 				min, ok = typed.Min.(String)
 				if !ok {
-					return matchesNone
+					return matchesNoValue
 				}
 			}
 			if typed.Max != nil {
 				max, ok = typed.Max.(String)
 				if !ok {
-					return matchesNone
+					return matchesNoValue
 				}
 			}
 			if typed.Min != nil {
 				if typed.Max != nil {
-					return Filter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
+					return ValueFilter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
 						id, ok := datum.V.(String)
 						return ok && id >= min && id <= max
 					}}
 				}
-				return Filter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
+				return ValueFilter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
 					id, ok := datum.V.(String)
 					return ok && id >= min
 				}}
 			}
-			return Filter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
+			return ValueFilter{Min: typed.Min, Max: typed.Max, Pred: func(datum Datum) bool {
 				id, ok := datum.V.(String)
 				return ok && id <= max
 			}}
 		case Int:
+			panic("TODO")
 		case Inst:
+			panic("TODO")
 		case Bool:
+			panic("TODO")
+		default:
+			return matchesNoValue
 		}
+	default:
+		return matchesNoValue
 	}
-	return matchesNone
 }
