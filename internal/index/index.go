@@ -8,6 +8,10 @@ import (
 	"github.com/google/btree"
 )
 
+func BuildIndex() BTreeIndex {
+	return BTreeIndex{tree: *btree.New(16)}
+}
+
 type Seq struct {
 	Close  chan<- Void
 	Values <-chan Datum
@@ -80,7 +84,7 @@ func (idx *BTreeIndex) InsertOne(d Datum) Datum {
 		idx.tree.ReplaceOrInsert(node)
 		node.kind = IndexAVE
 		idx.tree.ReplaceOrInsert(node)
-		return d
+		return extant.datum
 	}
 }
 
