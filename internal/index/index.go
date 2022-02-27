@@ -11,12 +11,23 @@ import (
 )
 
 func BuildIndex() BTreeIndex {
-	return BTreeIndex{tree: *btree.New(16), idents: make(map[String]ID, 256)}
+	return BTreeIndex{
+		tree:   *btree.New(16),
+		idents: make(map[String]ID, 256),
+		attrs:  make(map[ID]Attr, 256),
+	}
+}
+
+type Attr struct {
+	typ    ID
+	many   bool
+	unique bool
 }
 
 type BTreeIndex struct {
 	tree   btree.BTree
 	idents map[String]ID
+	attrs  map[ID]Attr
 }
 
 type Node struct {
@@ -52,11 +63,51 @@ func (idx *BTreeIndex) Assert(d Datum) Datum {
 	// TODO if a is an ident, validate that v is not in sys
 	// TODO call assertOne or assertMany depending on a's cardinality
 	// TODO if a is unique, enforce uniqueness
-	extant, changed := idx.assertOne(d)
-	if d.A == sys.DbIdent && changed {
+	switch d.A {
+	case sys.AttrType:
+		v := d.V.(ID)
+		// TODO validate attr type is a valid attr type
+		attr, ok := idx.attrs[d.E]
+		if ok {
+			if attr.typ != 0 && attr.typ != v {
+				panic("attr type changes are not cool")
+			}
+			attr.typ = v
+		} else {
+			idx.attrs[d.E] = Attr{typ: v}
+		}
+	case sys.AttrUnique:
+		v := d.V.(ID)
+		unique := v == sys.AttrUniqueGlobal
+		attr, ok := idx.attrs[d.E]
+		if ok {
+			if attr.unique && !unique {
+				panic("attr unique changes are not cool")
+			}
+			attr.unique = unique
+		} else {
+			idx.attrs[d.E] = Attr{unique: unique}
+		}
+	case sys.AttrCardinality:
+		v := d.V.(ID)
+		if !(v == sys.AttrCardinalityOne || v == sys.AttrCardinalityMany) {
+			panic("invalid cardinality value")
+		}
+		many := v == sys.AttrCardinalityMany
+		attr, ok := idx.attrs[d.E]
+		if ok {
+			if attr.many && !many {
+				panic("attr cardinality change from many to one is not cool")
+			}
+			attr.many = many
+		} else {
+			idx.attrs[d.E] = Attr{many: many}
+		}
+	case sys.DbIdent:
 		ident := d.V.(String)
 		idx.idents[ident] = d.E
 	}
+	extant, _ := idx.assertOne(d)
 	return extant
 }
 

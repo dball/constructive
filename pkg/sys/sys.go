@@ -11,8 +11,8 @@ const (
 	Tx                  = ID(1)
 	TxAt                = ID(2)
 	DbIdent             = ID(3)
-	DbUnique            = ID(4)
-	DbUniqueGlobal      = ID(5)
+	AttrUnique          = ID(4)
+	AttrUniqueGlobal    = ID(5)
 	AttrType            = ID(6)
 	AttrTypeRef         = ID(7)
 	AttrTypeString      = ID(8)
@@ -31,10 +31,10 @@ var epoch time.Time
 var Datums []Datum = []Datum{
 	{E: DbIdent, A: DbIdent, V: String("sys/db/ident"), T: Tx},
 	{E: DbIdent, A: AttrType, V: AttrTypeString, T: Tx},
-	{E: DbIdent, A: DbUnique, V: DbUniqueGlobal, T: Tx},
-	{E: DbUnique, A: DbIdent, V: String("sys/db/unique"), T: Tx},
-	{E: DbUnique, A: AttrType, V: AttrTypeRef, T: Tx},
-	{E: DbUniqueGlobal, A: DbIdent, V: String("sys/db/unique/global"), T: Tx},
+	{E: DbIdent, A: AttrUnique, V: AttrUniqueGlobal, T: Tx},
+	{E: AttrUnique, A: DbIdent, V: String("sys/attr/unique"), T: Tx},
+	{E: AttrUnique, A: AttrType, V: AttrTypeRef, T: Tx},
+	{E: AttrUniqueGlobal, A: DbIdent, V: String("sys/attr/unique/global"), T: Tx},
 	{E: TxAt, A: DbIdent, V: String("sys/tx/at"), T: Tx},
 	{E: TxAt, A: AttrType, V: AttrTypeInst, T: Tx},
 	{E: AttrType, A: DbIdent, V: String("sys/attr/type"), T: Tx},
