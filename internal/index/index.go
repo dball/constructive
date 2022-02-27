@@ -273,7 +273,30 @@ func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
 		}
 		return r
 	case ERange:
-		panic("TODO need to resolve e readref")
+		r := ids.Range{}
+		switch min := e.Min.(type) {
+		case ID:
+			r.Min = min
+		case LookupRef:
+			panic("TODO")
+		case Ident:
+			panic("TODO")
+		case nil:
+		default:
+			panic("TODO")
+		}
+		switch max := e.Max.(type) {
+		case ID:
+			r.Max = max
+		case LookupRef:
+			panic("TODO")
+		case Ident:
+			panic("TODO")
+		case nil:
+		default:
+			panic("TODO")
+		}
+		return r
 	default:
 		panic("TODO nope")
 	}

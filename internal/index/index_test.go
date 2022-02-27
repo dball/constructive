@@ -60,16 +60,19 @@ func TestSelectLots(t *testing.T) {
 	}
 	t.Run("just one e", func(t *testing.T) {
 		datums := slurp(idx.Select(Selection{E: ID(1005)}))
-		assert.Equal(t, 5, len(datums))
+		assert.Len(t, datums, 5)
 	})
 	t.Run("an e and an a", func(t *testing.T) {
 		datums := slurp(idx.Select(Selection{E: ID(1005), A: ID(3)}))
-		assert.Equal(t, 1, len(datums))
+		assert.Len(t, datums, 1)
 	})
 	t.Run("two e in a set", func(t *testing.T) {
-		fmt.Println("-----------------------------------------------")
 		datums := slurp(idx.Select(Selection{E: ESet{ID(1006): Void{}, ID(1004): Void{}}}))
-		assert.Equal(t, 10, len(datums))
+		assert.Len(t, datums, 10)
+	})
+	t.Run("range of es", func(t *testing.T) {
+		datums := slurp(idx.Select(Selection{E: ERange{Min: ID(1002), Max: ID(1004)}}))
+		assert.Len(t, datums, 15)
 	})
 }
 
