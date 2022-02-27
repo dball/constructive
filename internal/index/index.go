@@ -3,6 +3,7 @@ package index
 import (
 	"github.com/dball/constructive/internal/compare"
 	"github.com/dball/constructive/internal/ids"
+	"github.com/dball/constructive/internal/iterator"
 	"github.com/dball/constructive/pkg/sys"
 	. "github.com/dball/constructive/pkg/types"
 
@@ -11,11 +12,6 @@ import (
 
 func BuildIndex() BTreeIndex {
 	return BTreeIndex{tree: *btree.New(16), idents: make(map[String]ID, 256)}
-}
-
-type Seq struct {
-	Close  chan<- Void
-	Values <-chan Datum
 }
 
 type BTreeIndex struct {
@@ -172,68 +168,44 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 	}
 }
 
-func (idx *BTreeIndex) doSearch(search rangeSearch) Seq {
+type btreeRangeSearch struct {
+	rangeSearch
+	idx *BTreeIndex
+}
+
+func (search btreeRangeSearch) Each(accept iterator.Accept) {
 	start := Node{kind: search.indexType, datum: search.start}
 	if !search.ascending {
 		panic("TODO")
 	}
-	datums := make(chan Datum)
-	cls := make(chan Void)
-	seq := Seq{Values: datums, Close: cls}
-	iter := func(item btree.Item) bool {
-		select {
-		case <-cls:
-			close(datums)
-			return false
-		default:
-		}
+	treeIter := func(item btree.Item) bool {
 		node := item.(Node)
 		datum := node.datum
 		if node.kind != search.indexType || search.terminator != nil && search.terminator(datum) {
-			close(datums)
 			return false
 		}
 		if search.filter == nil || search.filter(datum) {
-			datums <- datum
+			if !accept(datum) {
+				return false
+			}
 		}
 		return true
 	}
-	go idx.tree.AscendGreaterOrEqual(start, iter)
-	return seq
+	search.idx.tree.AscendGreaterOrEqual(start, treeIter)
 }
 
-func (idx *BTreeIndex) Select(sel Selection) Seq {
+func (search btreeRangeSearch) Iterator() *iterator.Iterator {
+	return iterator.BuildIterator(search)
+}
+
+func (idx *BTreeIndex) Select(sel Selection) *iterator.Iterator {
 	c := idx.buildConstraints(sel)
 	searches := buildRangeSearches(c)
-	datums := make(chan Datum, 16)
-	cls := make(chan Void)
-	seq := Seq{Values: datums, Close: cls}
-	go func() {
-	OUTER:
-		// If we don't care to retain sequentiality, these could be concurrent
-		for _, search := range searches {
-			sseq := idx.doSearch(search)
-			for {
-				select {
-				case datum, ok := <-sseq.Values:
-					if !ok {
-						continue OUTER
-					}
-					select {
-					case datums <- datum:
-					case <-cls:
-						sseq.Close <- Void{}
-						break OUTER
-					}
-				case <-cls:
-					sseq.Close <- Void{}
-					break OUTER
-				}
-			}
-		}
-		close(datums)
-	}()
-	return seq
+	iterators := make(iterator.Iterators, 0, len(searches))
+	for _, search := range searches {
+		iterators = append(iterators, *btreeRangeSearch{rangeSearch: search, idx: idx}.Iterator())
+	}
+	return iterator.BuildIterator(&iterators)
 }
 
 func (idx *BTreeIndex) buildConstraints(sel Selection) Constraints {

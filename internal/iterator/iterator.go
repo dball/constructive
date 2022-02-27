@@ -45,3 +45,15 @@ func (iter *Iterator) Value() Value {
 func (iter *Iterator) Stop() {
 	close(iter.stop)
 }
+
+type Iterators []Iterator
+
+func (iters Iterators) Each(accept Accept) {
+	for _, iterator := range iters {
+		for iterator.Next() {
+			if !accept(iterator.Value()) {
+				return
+			}
+		}
+	}
+}

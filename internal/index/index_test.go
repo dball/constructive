@@ -1,12 +1,13 @@
 package index
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/dball/constructive/internal/iterator"
 	"github.com/dball/constructive/pkg/sys"
 	. "github.com/dball/constructive/pkg/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAssert(t *testing.T) {
@@ -37,19 +38,14 @@ func TestSelect(t *testing.T) {
 	idx := BuildIndex()
 	idx.Assert(D(1000, 500, String("Donald"), 100))
 	idx.Assert(D(1001, 500, String("Stephen"), 100))
-	seq := idx.Select(Selection{
+	iter := idx.Select(Selection{
 		E: ID(1000),
 		A: ID(500),
 		V: String("Donald"),
 	})
-	count := 0
-	var datum Datum
-	for d := range seq.Values {
-		datum = d
-		count++
-	}
-	assert.Equal(t, 1, count)
-	assert.Equal(t, D(ID(1000), ID(500), String("Donald"), ID(100)), datum)
+	datums := slurp(iter)
+	require.Len(t, datums, 1)
+	assert.Equal(t, D(ID(1000), ID(500), String("Donald"), ID(100)), datums[0])
 }
 
 func TestSelectLots(t *testing.T) {
@@ -88,10 +84,9 @@ func TestIdents(t *testing.T) {
 	assert.Equal(t, []Datum{D(ID(1000), sys.DbIdent, String("person/name"), ID(1000))}, datums)
 }
 
-func slurp(seq Seq) (datums []Datum) {
-	for datum := range seq.Values {
-		fmt.Println("Received", datum)
-		datums = append(datums, datum)
+func slurp(iter *iterator.Iterator) (datums []Datum) {
+	for iter.Next() {
+		datums = append(datums, iter.Value().(Datum))
 	}
 	return datums
 }
