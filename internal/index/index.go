@@ -139,11 +139,11 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 		searches := make([]rangeSearch, 0, searchCount)
 		es := c.E.Iterator()
 		for es.Next() {
-			e := es.Value()
+			e := es.Value().(ID)
 			if c.A != nil {
 				as := c.A.Iterator()
 				for as.Next() {
-					a := as.Value()
+					a := as.Value().(ID)
 					search := rangeSearch{
 						indexType:  indexType,
 						start:      Datum{E: e, A: a},
@@ -273,7 +273,7 @@ func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
 		for esel := range e {
 			es := idx.resolveESel(esel).Iterator()
 			for es.Next() {
-				r[es.Value()] = Void{}
+				r[es.Value().(ID)] = Void{}
 			}
 		}
 		return r

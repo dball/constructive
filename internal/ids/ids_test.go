@@ -13,7 +13,7 @@ func Test_Seq(t *testing.T) {
 		actual := []ID{}
 		iter := scalar.Iterator()
 		for iter.Next() {
-			actual = append(actual, iter.Value())
+			actual = append(actual, iter.Value().(ID))
 		}
 		assert.Equal(t, []ID{5}, actual)
 	})
@@ -22,7 +22,7 @@ func Test_Seq(t *testing.T) {
 		actual := []ID{}
 		iter := set.Iterator()
 		for iter.Next() {
-			actual = append(actual, iter.Value())
+			actual = append(actual, iter.Value().(ID))
 		}
 		assert.ElementsMatch(t, []ID{5, 7}, actual)
 	})
@@ -31,7 +31,7 @@ func Test_Seq(t *testing.T) {
 		actual := []ID{}
 		iter := r.Iterator()
 		for iter.Next() {
-			actual = append(actual, iter.Value())
+			actual = append(actual, iter.Value().(ID))
 		}
 		assert.Equal(t, []ID{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}, actual)
 	})
