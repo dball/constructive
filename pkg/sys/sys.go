@@ -7,18 +7,21 @@ import (
 )
 
 const (
-	DbId           = "sys/db/id"
-	Tx             = ID(1)
-	TxAt           = ID(2)
-	DbIdent        = ID(3)
-	DbUnique       = ID(4)
-	DbUniqueGlobal = ID(5)
-	AttrType       = ID(6)
-	AttrTypeRef    = ID(7)
-	AttrTypeString = ID(8)
-	AttrTypeInt    = ID(9)
-	AttrTypeBool   = ID(10)
-	AttrTypeInst   = ID(11)
+	DbId                = "sys/db/id"
+	Tx                  = ID(1)
+	TxAt                = ID(2)
+	DbIdent             = ID(3)
+	DbUnique            = ID(4)
+	DbUniqueGlobal      = ID(5)
+	AttrType            = ID(6)
+	AttrTypeRef         = ID(7)
+	AttrTypeString      = ID(8)
+	AttrTypeInt         = ID(9)
+	AttrTypeBool        = ID(10)
+	AttrTypeInst        = ID(11)
+	AttrCardinality     = ID(12)
+	AttrCardinalityOne  = ID(13)
+	AttrCardinalityMany = ID(14)
 
 	FirstUserID = ID(0x100000)
 )

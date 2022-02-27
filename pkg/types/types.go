@@ -36,11 +36,11 @@ func D(e ID, a ID, v Value, t ID) Datum {
 }
 
 type Attribute struct {
-	ID          ID
-	Name        string
-	Type        string
-	Cardinality string
-	Unique      string
+	ID          ID     `attr:"sys/db/id"`
+	Name        String `attr:"sys/db/ident"`
+	Type        ID     `attr:"sys/attr/type"`
+	Cardinality ID     `attr:"sys/attr/cardinality"`
+	Unique      ID     `attr:"sys/db/unique"`
 }
 
 type LookupRef struct {
