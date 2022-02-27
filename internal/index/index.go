@@ -120,37 +120,30 @@ type rangeSearch struct {
 	terminator predicate
 }
 
-// TODO if this returned a seq of range searches, we could thread any close
-// signal from the search consumer back to the id seqs and be maximally lazy.
+// TODO if this returned an iterator of range searches, we could thread any close
+// signal from the search consumer back to the id iteraors and be maximally lazy.
 func buildRangeSearches(c Constraints) []rangeSearch {
-	var es ids.Seq
-	if c.E != nil {
-		es = c.E.Seq()
-	}
-	var as ids.Seq
-	if c.A != nil {
-		as = c.A.Seq()
-	}
 	var indexType IndexType
 	searchCount := 1
 	switch {
 	case c.E != nil:
 		indexType = IndexEAV
-		searchCount *= es.Length
-		if as.Length != 0 {
-			searchCount *= as.Length
+		searchCount *= c.E.Size()
+		if c.A != nil {
+			searchCount *= c.A.Size()
 		}
 		var filter predicate
 		if c.V != nil {
 			filter = buildValueFilter(c.V).Pred
 		}
 		searches := make([]rangeSearch, 0, searchCount)
-		for e := range es.Values {
-			// The way golang closures and range blocks work is the gift that keeps on taking.
-			e := e
+		es := c.E.Iterator()
+		for es.Next() {
+			e := es.Value()
 			if c.A != nil {
-				for a := range as.Values {
-					a := a
+				as := c.A.Iterator()
+				for as.Next() {
+					a := as.Value()
 					search := rangeSearch{
 						indexType:  indexType,
 						start:      Datum{E: e, A: a},
@@ -173,11 +166,6 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 		}
 		return searches
 	case c.A != nil:
-		indexType = IndexAVE
-		searchCount *= as.Length
-		if es.Length != 0 {
-			searchCount *= es.Length
-		}
 		panic("TODO")
 	default:
 		panic("TODO")
@@ -283,9 +271,9 @@ func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
 	case ESet:
 		r := make(ids.Set, len(e))
 		for esel := range e {
-			seq := idx.resolveESel(esel).Seq()
-			for id := range seq.Values {
-				r[id] = Void{}
+			es := idx.resolveESel(esel).Iterator()
+			for es.Next() {
+				r[es.Value()] = Void{}
 			}
 		}
 		return r

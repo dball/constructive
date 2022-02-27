@@ -4,14 +4,51 @@ import (
 	. "github.com/dball/constructive/pkg/types"
 )
 
-type Seq struct {
-	Length int
-	Close  chan<- Void
-	Values <-chan ID
+type Accept func(ID) bool
+
+type Seq interface {
+	Each(Accept)
+}
+
+type Iterator struct {
+	stop    chan Void
+	values  chan ID
+	current ID
+}
+
+func BuildIterator(seq Seq) *Iterator {
+	values := make(chan ID)
+	stop := make(chan Void)
+	go func() {
+		defer close(values)
+		seq.Each(func(id ID) bool {
+			select {
+			case values <- id:
+				return true
+			case <-stop:
+				return false
+			}
+		})
+	}()
+	return &Iterator{stop: stop, values: values}
+}
+
+func (iter *Iterator) Next() (ok bool) {
+	iter.current, ok = <-iter.values
+	return
+}
+
+func (iter *Iterator) Value() ID {
+	return iter.current
+}
+
+func (iter *Iterator) Stop() {
+	close(iter.stop)
 }
 
 type Constraint interface {
-	Seq() Seq
+	Size() int
+	Iterator() *Iterator
 }
 
 type Scalar ID
@@ -21,39 +58,46 @@ type Range struct {
 	Max ID
 }
 
-func (scalar Scalar) Seq() Seq {
-	values := make(chan ID, 1)
-	values <- ID(scalar)
-	close(values)
-	// TODO what is the empty value for channels?
-	// TODO should this have a buffer of 1, or a drain?
-	return Seq{Close: make(chan Void), Length: 1, Values: values}
+func (scalar Scalar) Each(accept Accept) {
+	accept(ID(scalar))
 }
 
-func (set Set) Seq() Seq {
-	l := len(set)
-	values := make(chan ID, l)
+func (scalar Scalar) Size() int {
+	return 1
+}
+
+func (scalar Scalar) Iterator() *Iterator {
+	return BuildIterator(scalar)
+}
+
+func (set Set) Each(accept Accept) {
 	for id := range set {
-		values <- id
+		if !accept(id) {
+			return
+		}
 	}
-	close(values)
-	return Seq{Close: make(chan Void), Length: l, Values: values}
 }
 
-func (r Range) Seq() Seq {
-	values := make(chan ID, 16)
-	cls := make(chan Void)
-	go func() {
-	OUTER:
-		for id := r.Min; id <= r.Max; id++ {
-			select {
-			case values <- id:
-			case <-cls:
-				break OUTER
-			}
+func (set Set) Size() int {
+	return len(set)
+}
+
+func (set Set) Iterator() *Iterator {
+	return BuildIterator(set)
+}
+
+func (r Range) Each(accept Accept) {
+	for id := r.Min; id <= r.Max; id++ {
+		if !accept(id) {
+			return
 		}
-		close(values)
-	}()
-	l := r.Max - r.Min + 1
-	return Seq{Close: cls, Length: int(l), Values: values}
+	}
+}
+
+func (r Range) Size() int {
+	return int(r.Max - r.Min + 1)
+}
+
+func (r Range) Iterator() *Iterator {
+	return BuildIterator(r)
 }
