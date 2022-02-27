@@ -1,17 +1,16 @@
 package index
 
 import (
-	"fmt"
-
 	"github.com/dball/constructive/internal/compare"
 	"github.com/dball/constructive/internal/ids"
+	"github.com/dball/constructive/pkg/sys"
 	. "github.com/dball/constructive/pkg/types"
 
 	"github.com/google/btree"
 )
 
 func BuildIndex() BTreeIndex {
-	return BTreeIndex{tree: *btree.New(16)}
+	return BTreeIndex{tree: *btree.New(16), idents: make(map[String]ID, 256)}
 }
 
 type Seq struct {
@@ -20,7 +19,8 @@ type Seq struct {
 }
 
 type BTreeIndex struct {
-	tree btree.BTree
+	tree   btree.BTree
+	idents map[String]ID
 }
 
 type Node struct {
@@ -51,7 +51,27 @@ func (n1 Node) Less(than btree.Item) bool {
 	return (compareKind(n1.kind))(n1.datum, n2.datum) < 0
 }
 
-func (idx *BTreeIndex) InsertOne(d Datum) Datum {
+func (idx *BTreeIndex) Assert(d Datum) Datum {
+	// TODO validate type consistency of a and v
+	// TODO if a is an ident, validate that v is not in sys
+	// TODO call assertOne or assertMany depending on a's cardinality
+	// TODO if a is unique, enforce uniqueness
+	extant, changed := idx.assertOne(d)
+	if d.A == sys.DbIdent && changed {
+		ident := d.V.(String)
+		idx.idents[ident] = d.E
+	}
+	return extant
+}
+
+// assertOne ensures a datum for an attribute of cardinality one exists in the index.
+// If no datum for the entity and attribute already existed, this inserts one and returns
+// an empty datum. If one already exists with the same value, this returns that datum and
+// makes no changes to the index. Otherwise, this removes and returns that datum and inserts
+// the given datum.
+//
+// This performs no validation.
+func (idx *BTreeIndex) assertOne(d Datum) (d0 Datum, changed bool) {
 	floor := Datum{E: d.E, A: d.A}
 	ceiling := Datum{E: d.E, A: d.A + 1}
 	var extant Node
@@ -68,9 +88,9 @@ func (idx *BTreeIndex) InsertOne(d Datum) Datum {
 		// TODO only for unique a
 		node.kind = IndexAVE
 		idx.tree.ReplaceOrInsert(node)
-		return Datum{}
+		return Datum{}, true
 	case Compare(d.V, extant.datum.V) == 0:
-		return extant.datum
+		return extant.datum, false
 	default:
 		node := Node{IndexEAV, extant.datum}
 		idx.tree.Delete(node)
@@ -86,7 +106,7 @@ func (idx *BTreeIndex) InsertOne(d Datum) Datum {
 		idx.tree.ReplaceOrInsert(node)
 		node.kind = IndexAVE
 		idx.tree.ReplaceOrInsert(node)
-		return extant.datum
+		return extant.datum, true
 	}
 }
 
@@ -181,17 +201,12 @@ func (idx *BTreeIndex) doSearch(search rangeSearch) Seq {
 		}
 		node := item.(Node)
 		datum := node.datum
-		fmt.Println("inspecting node", datum)
 		if node.kind != search.indexType || search.terminator != nil && search.terminator(datum) {
-			fmt.Println("terminating")
 			close(datums)
 			return false
 		}
 		if search.filter == nil || search.filter(datum) {
-			fmt.Println("accepted node", datum)
 			datums <- datum
-		} else {
-			fmt.Println("rejected node", datum)
 		}
 		return true
 	}
@@ -211,29 +226,23 @@ func (idx *BTreeIndex) Select(sel Selection) Seq {
 		for _, search := range searches {
 			sseq := idx.doSearch(search)
 			for {
-				fmt.Println("select waiting for datum")
 				select {
 				case datum, ok := <-sseq.Values:
 					if !ok {
-						fmt.Println("sseq is closed")
 						continue OUTER
 					}
 					select {
 					case datums <- datum:
-						fmt.Println("conveyed datum", datum)
 					case <-cls:
-						fmt.Println("closed while trying to write datum")
 						sseq.Close <- Void{}
 						break OUTER
 					}
 				case <-cls:
-					fmt.Println("closed while trying to read datum")
 					sseq.Close <- Void{}
 					break OUTER
 				}
 			}
 		}
-		fmt.Println("closing select datums")
 		close(datums)
 	}()
 	return seq
@@ -255,6 +264,10 @@ func (idx *BTreeIndex) buildConstraints(sel Selection) Constraints {
 	return c
 }
 
+func (idx *BTreeIndex) ResolveIdent(ident Ident) ID {
+	return idx.idents[String(ident)]
+}
+
 func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
 	switch e := sel.(type) {
 	case ID:
@@ -262,7 +275,11 @@ func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
 	case LookupRef:
 		panic("TODO")
 	case Ident:
-		panic("TODO")
+		id := idx.ResolveIdent(e)
+		if id == 0 {
+			return nil
+		}
+		return ids.Scalar(id)
 	case ESet:
 		r := make(ids.Set, len(e))
 		for esel := range e {
@@ -280,7 +297,11 @@ func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
 		case LookupRef:
 			panic("TODO")
 		case Ident:
-			panic("TODO")
+			id := idx.ResolveIdent(min)
+			if id == 0 {
+				return nil
+			}
+			return ids.Scalar(id)
 		case nil:
 		default:
 			panic("TODO")
@@ -291,7 +312,11 @@ func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
 		case LookupRef:
 			panic("TODO")
 		case Ident:
-			panic("TODO")
+			id := idx.ResolveIdent(max)
+			if id == 0 {
+				return nil
+			}
+			return ids.Scalar(id)
 		case nil:
 		default:
 			panic("TODO")
