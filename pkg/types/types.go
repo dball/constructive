@@ -176,8 +176,6 @@ type Connection interface {
 	Write(request Request) (Transaction, WriteError)
 }
 
-var ErrInvalidValue error = errors.New("invalid value")
-
 func ValueOf(x interface{}) (Value, error) {
 	switch typed := x.(type) {
 	case string:
@@ -192,3 +190,10 @@ func ValueOf(x interface{}) (Value, error) {
 		return nil, ErrInvalidValue
 	}
 }
+
+var ErrInvalidValue error = errors.New("invalid value")
+var ErrInvalidUserIdent error = errors.New("users may not assert sys attrs")
+var ErrAttrTypeChange error = errors.New("attr types may not change")
+var ErrAttrUniqueChange error = errors.New("attr uniqueness may not change")
+var ErrInvalidAttrCardinality error = errors.New("attr cardinality must be one or many")
+var ErrAttrCardinalityChange error = errors.New("attr cardinality may not change")

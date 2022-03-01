@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"strings"
 	"time"
 
 	. "github.com/dball/constructive/pkg/types"
@@ -74,4 +75,35 @@ func ValidValue(typ ID, value Value) (ok bool) {
 		_, ok = value.(Inst)
 	}
 	return
+}
+
+func ValidUnique(id ID) bool {
+	return id == AttrUniqueGlobal
+}
+
+func ValidAttrType(id ID) bool {
+	switch id {
+	case AttrTypeRef:
+	case AttrTypeString:
+	case AttrTypeInt:
+	case AttrTypeBool:
+	case AttrTypeInst:
+	default:
+		return false
+	}
+	return true
+}
+
+func ValidAttrCardinality(id ID) bool {
+	switch id {
+	case AttrCardinalityOne:
+	case AttrCardinalityMany:
+	default:
+		return false
+	}
+	return true
+}
+
+func ValidUserIdent(value String) bool {
+	return !strings.HasPrefix(string(value), "sys/")
 }

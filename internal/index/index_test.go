@@ -20,19 +20,23 @@ func TestInitSystem(t *testing.T) {
 func TestAssert(t *testing.T) {
 	idx := BuildIndex()
 	t.Run("asserting a new datum returns the empty datum", func(t *testing.T) {
-		extant := idx.Assert(D(1000, 500, Int(1), 100))
+		extant, err := idx.Assert(D(1000, 500, Int(1), 100))
+		require.NoError(t, err)
 		assert.Equal(t, D(ID(0), ID(0), nil, ID(0)), extant)
 	})
 	t.Run("asserting a duplicate datum returns the extant datum", func(t *testing.T) {
-		extant := idx.Assert(D(1000, 500, Int(1), 101))
+		extant, err := idx.Assert(D(1000, 500, Int(1), 101))
+		require.NoError(t, err)
 		assert.Equal(t, D(ID(1000), ID(500), Int(1), 100), extant)
 	})
 	t.Run("asserting a new value returns the old datum", func(t *testing.T) {
-		extant := idx.Assert(D(1000, 500, Int(5), 102))
+		extant, err := idx.Assert(D(1000, 500, Int(5), 102))
+		require.NoError(t, err)
 		assert.Equal(t, D(ID(1000), ID(500), Int(1), 100), extant)
 	})
 	t.Run("asserting a newer value returns the old datum", func(t *testing.T) {
-		extant := idx.Assert(D(1000, 500, Int(2), 103))
+		extant, err := idx.Assert(D(1000, 500, Int(2), 103))
+		require.NoError(t, err)
 		assert.Equal(t, D(ID(1000), ID(500), Int(5), 102), extant)
 	})
 	t.Run("asserting an ident registers it in the cache", func(t *testing.T) {

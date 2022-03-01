@@ -1,72 +1,69 @@
 package index
 
 import (
-	"strings"
-
 	. "github.com/dball/constructive/pkg/types"
 
 	"github.com/dball/constructive/pkg/sys"
 	"github.com/google/btree"
 )
 
-func (idx *BTreeIndex) Assert(d Datum) Datum {
-	attr, ok := idx.attrs[d.A]
-	if ok && !sys.ValidValue(attr.Typ, d.V) {
-		panic("invalid types are super uncool")
-	}
-	ident, ok := idx.identNames[d.A]
-	if ok && strings.HasPrefix(string(ident), "sys/") {
-		panic("users may not assert sys idents")
+func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
+	attr, ok := idx.attrs[assertion.A]
+	if ok && !sys.ValidValue(attr.Typ, assertion.V) {
+		return conclusion, ErrInvalidValue
 	}
 	// TODO call assertOne or assertMany depending on a's cardinality
 	// TODO if a is unique, enforce uniqueness
-	switch d.A {
+	switch assertion.A {
 	case sys.AttrType:
-		v := d.V.(ID)
+		v := assertion.V.(ID)
 		// TODO validate attr type is a valid attr type
-		attr, ok := idx.attrs[d.E]
+		attr, ok := idx.attrs[assertion.E]
 		if ok {
 			if attr.Typ != 0 && attr.Typ != v {
-				panic("attr type changes are not cool")
+				return conclusion, ErrAttrTypeChange
 			}
 			attr.Typ = v
 		} else {
-			idx.attrs[d.E] = sys.Attr{Typ: v}
+			idx.attrs[assertion.E] = sys.Attr{Typ: v}
 		}
 	case sys.AttrUnique:
-		v := d.V.(ID)
-		unique := v == sys.AttrUniqueGlobal
-		attr, ok := idx.attrs[d.E]
+		v := assertion.V.(ID)
+		unique := sys.ValidUnique(v)
+		attr, ok := idx.attrs[assertion.E]
 		if ok {
 			if attr.Unique && !unique {
-				panic("attr unique changes are not cool")
+				return conclusion, ErrAttrUniqueChange
 			}
 			attr.Unique = unique
 		} else {
-			idx.attrs[d.E] = sys.Attr{Unique: unique}
+			idx.attrs[assertion.E] = sys.Attr{Unique: unique}
 		}
 	case sys.AttrCardinality:
-		v := d.V.(ID)
-		if !(v == sys.AttrCardinalityOne || v == sys.AttrCardinalityMany) {
-			panic("invalid cardinality value")
+		v := assertion.V.(ID)
+		if !sys.ValidAttrCardinality(v) {
+			return conclusion, ErrInvalidAttrCardinality
 		}
 		many := v == sys.AttrCardinalityMany
-		attr, ok := idx.attrs[d.E]
+		attr, ok := idx.attrs[assertion.E]
 		if ok {
 			if attr.Many && !many {
-				panic("attr cardinality change from many to one is not cool")
+				return conclusion, ErrAttrCardinalityChange
 			}
 			attr.Many = many
 		} else {
-			idx.attrs[d.E] = sys.Attr{Many: many}
+			idx.attrs[assertion.E] = sys.Attr{Many: many}
 		}
 	case sys.DbIdent:
-		ident := d.V.(String)
-		idx.idents[ident] = d.E
-		idx.identNames[d.E] = ident
+		ident := assertion.V.(String)
+		if !sys.ValidUserIdent(ident) {
+			return conclusion, ErrInvalidUserIdent
+		}
+		idx.idents[ident] = assertion.E
+		idx.identNames[assertion.E] = ident
 	}
-	extant, _ := idx.assertOne(d)
-	return extant
+	extant, _ := idx.assertOne(assertion)
+	return extant, nil
 }
 
 // assertOne ensures a datum for an attribute of cardinality one exists in the index.
