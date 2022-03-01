@@ -10,6 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestInitSystem(t *testing.T) {
+	idx := BuildIndex()
+	idx.InitSys()
+	datums := slurp(idx.Select(Selection{E: sys.DbIdent}))
+	assert.Len(t, datums, 3)
+}
+
 func TestAssert(t *testing.T) {
 	idx := BuildIndex()
 	t.Run("asserting a new datum returns the empty datum", func(t *testing.T) {

@@ -45,3 +45,33 @@ var Datums []Datum = []Datum{
 	{E: AttrTypeInt, A: DbIdent, V: String("sys/attr/type/int"), T: Tx},
 	{E: Tx, A: TxAt, V: Inst(epoch), T: Tx},
 }
+
+type Attr struct {
+	Typ    ID
+	Many   bool
+	Unique bool
+}
+
+// This could be computed from Datums but this is smaller than the reducer code
+var Attrs map[ID]Attr = map[ID]Attr{
+	DbIdent:    {Typ: AttrTypeString, Unique: true},
+	AttrUnique: {Typ: AttrTypeRef},
+	AttrType:   {Typ: AttrTypeRef},
+	TxAt:       {Typ: AttrTypeInst},
+}
+
+func ValidValue(typ ID, value Value) (ok bool) {
+	switch typ {
+	case AttrTypeRef:
+		_, ok = value.(ID)
+	case AttrTypeString:
+		_, ok = value.(String)
+	case AttrTypeInt:
+		_, ok = value.(Int)
+	case AttrTypeBool:
+		_, ok = value.(Bool)
+	case AttrTypeInst:
+		_, ok = value.(Inst)
+	}
+	return
+}
