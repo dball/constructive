@@ -8,8 +8,8 @@ import (
 	"github.com/google/btree"
 )
 
-func BuildIndex() BTreeIndex {
-	return BTreeIndex{
+func BuildIndex() *BTreeIndex {
+	return &BTreeIndex{
 		tree:       *btree.New(16),
 		idents:     make(map[String]ID, 256),
 		identNames: make(map[ID]String, 256),
@@ -17,9 +17,9 @@ func BuildIndex() BTreeIndex {
 	}
 }
 
-func (idx *BTreeIndex) InitSys() {
+func (idx *BTreeIndex) InitSys() *BTreeIndex {
 	for _, datum := range sys.Datums {
-		idx.assertOne(datum)
+		idx.assertCardinalityOne(datum)
 	}
 	for id, attr := range sys.Attrs {
 		idx.attrs[id] = attr
@@ -38,6 +38,7 @@ func (idx *BTreeIndex) InitSys() {
 		return true
 	}
 	idx.tree.Ascend(iter)
+	return idx
 }
 
 type BTreeIndex struct {

@@ -10,6 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestAttrs(t *testing.T) {
+	idx := BuildIndex().InitSys()
+	idx.Assert(D(500, sys.DbIdent, String("person/name"), 100))
+	idx.Assert(D(500, sys.AttrType, sys.AttrTypeString, 100))
+	idx.Assert(D(1000, 500, String("Donald"), 101))
+	sel := idx.Select(Selection{E: ID(1000)})
+	assert.Equal(t, []Datum{D(1000, 500, String("Donald"), 101)}, slurp(sel))
+	_, err := idx.Assert(D(1001, 500, Int(23), 102))
+	assert.ErrorIs(t, err, ErrInvalidValue)
+}
+
 func TestInitSystem(t *testing.T) {
 	idx := BuildIndex()
 	idx.InitSys()

@@ -62,18 +62,18 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		idx.idents[ident] = assertion.E
 		idx.identNames[assertion.E] = ident
 	}
-	extant, _ := idx.assertOne(assertion)
+	extant, _ := idx.assertCardinalityOne(assertion)
 	return extant, nil
 }
 
-// assertOne ensures a datum for an attribute of cardinality one exists in the index.
+// assertCardinalityOne ensures a datum for an attribute of cardinality one exists in the index.
 // If no datum for the entity and attribute already existed, this inserts one and returns
 // an empty datum. If one already exists with the same value, this returns that datum and
 // makes no changes to the index. Otherwise, this removes and returns that datum and inserts
 // the given datum.
 //
 // This performs no validation.
-func (idx *BTreeIndex) assertOne(d Datum) (d0 Datum, changed bool) {
+func (idx *BTreeIndex) assertCardinalityOne(d Datum) (d0 Datum, changed bool) {
 	floor := Datum{E: d.E, A: d.A}
 	ceiling := Datum{E: d.E, A: d.A + 1}
 	var extant Node
