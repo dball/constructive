@@ -12,13 +12,48 @@ import (
 
 func TestAttrs(t *testing.T) {
 	idx := BuildIndex().InitSys()
-	idx.Assert(D(500, sys.DbIdent, String("person/name"), 100))
-	idx.Assert(D(500, sys.AttrType, sys.AttrTypeString, 100))
-	idx.Assert(D(1000, 500, String("Donald"), 101))
-	sel := idx.Select(Selection{E: ID(1000)})
-	assert.Equal(t, []Datum{D(1000, 500, String("Donald"), 101)}, slurp(sel))
-	_, err := idx.Assert(D(1001, 500, Int(23), 102))
-	assert.ErrorIs(t, err, ErrInvalidValue)
+	t.Run("assert attrs", func(t *testing.T) {
+		idx.Assert(D(500, sys.DbIdent, String("person/name"), 100))
+		idx.Assert(D(500, sys.AttrType, sys.AttrTypeString, 100))
+		idx.Assert(D(501, sys.DbIdent, String("person/age"), 100))
+		idx.Assert(D(501, sys.AttrType, sys.AttrTypeInt, 100))
+		// I reject your notion of linear time
+		idx.Assert(D(501, sys.AttrCardinality, sys.AttrCardinalityMany, 100))
+	})
+
+	t.Run("cardinality one string attr", func(t *testing.T) {
+		t.Run("accepts a string value", func(t *testing.T) {
+			idx.Assert(D(1000, 500, String("Donald"), 101))
+			sel := idx.Select(Selection{E: ID(1000)})
+			assert.Equal(t, []Datum{D(1000, 500, String("Donald"), 101)}, slurp(sel))
+		})
+		t.Run("rejects another type", func(t *testing.T) {
+			_, err := idx.Assert(D(1001, 500, Int(23), 102))
+			assert.ErrorIs(t, err, ErrInvalidValue)
+		})
+		t.Run("replaces a string value", func(t *testing.T) {
+			extant, err := idx.Assert(D(1000, 500, String("Stephen"), 102))
+			require.NoError(t, err)
+			assert.Equal(t, D(1000, 500, String("Donald"), 101), extant)
+			sel := idx.Select(Selection{E: ID(1000)})
+			assert.Equal(t, []Datum{D(1000, 500, String("Stephen"), 102)}, slurp(sel))
+		})
+	})
+
+	t.Run("cardinality many int attr", func(t *testing.T) {
+		t.Run("accepts an integer value", func(t *testing.T) {
+			_, err := idx.Assert(D(1000, 501, Int(23), 101))
+			require.NoError(t, err)
+			sel := idx.Select(Selection{E: ID(1000), A: ID(501)})
+			assert.Equal(t, []Datum{D(1000, 501, Int(23), 101)}, slurp(sel))
+		})
+		t.Run("adds another integer value", func(t *testing.T) {
+			_, err := idx.Assert(D(1000, 501, Int(109), 102))
+			require.NoError(t, err)
+			sel := idx.Select(Selection{E: ID(1000), A: ID(501)})
+			assert.Equal(t, []Datum{D(1000, 501, Int(23), 101), D(1000, 501, Int(109), 101)}, slurp(sel))
+		})
+	})
 }
 
 func TestInitSystem(t *testing.T) {
