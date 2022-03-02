@@ -10,7 +10,8 @@ import (
 func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 	attr, ok := idx.attrs[assertion.A]
 	if ok && !sys.ValidValue(attr.Typ, assertion.V) {
-		return conclusion, ErrInvalidValue
+		err = ErrInvalidValue
+		return
 	}
 	// TODO call assertOne or assertMany depending on a's cardinality
 	// TODO if a is unique, enforce uniqueness
@@ -21,7 +22,8 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		attr, ok := idx.attrs[assertion.E]
 		if ok {
 			if attr.Typ != 0 && attr.Typ != v {
-				return conclusion, ErrAttrTypeChange
+				err = ErrAttrTypeChange
+				return
 			}
 			attr.Typ = v
 		} else {
@@ -33,7 +35,8 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		attr, ok := idx.attrs[assertion.E]
 		if ok {
 			if attr.Unique && !unique {
-				return conclusion, ErrAttrUniqueChange
+				err = ErrAttrUniqueChange
+				return
 			}
 			attr.Unique = unique
 		} else {
@@ -42,13 +45,15 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 	case sys.AttrCardinality:
 		v := assertion.V.(ID)
 		if !sys.ValidAttrCardinality(v) {
-			return conclusion, ErrInvalidAttrCardinality
+			err = ErrInvalidAttrCardinality
+			return
 		}
 		many := v == sys.AttrCardinalityMany
 		attr, ok := idx.attrs[assertion.E]
 		if ok {
 			if attr.Many && !many {
-				return conclusion, ErrAttrCardinalityChange
+				err = ErrAttrCardinalityChange
+				return
 			}
 			attr.Many = many
 		} else {
@@ -57,13 +62,14 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 	case sys.DbIdent:
 		ident := assertion.V.(String)
 		if !sys.ValidUserIdent(ident) {
-			return conclusion, ErrInvalidUserIdent
+			err = ErrInvalidUserIdent
+			return
 		}
 		idx.idents[ident] = assertion.E
 		idx.identNames[assertion.E] = ident
 	}
-	extant, _ := idx.assertCardinalityOne(assertion)
-	return extant, nil
+	conclusion, _ = idx.assertCardinalityOne(assertion)
+	return
 }
 
 // assertCardinalityOne ensures a datum for an attribute of cardinality one exists in the index.
