@@ -44,6 +44,10 @@ var Datums []Datum = []Datum{
 	{E: AttrTypeString, A: DbIdent, V: String("sys/attr/type/string"), T: Tx},
 	{E: AttrTypeInst, A: DbIdent, V: String("sys/attr/type/inst"), T: Tx},
 	{E: AttrTypeInt, A: DbIdent, V: String("sys/attr/type/int"), T: Tx},
+	{E: AttrCardinality, A: DbIdent, V: String("sys/attr/cardinality"), T: Tx},
+	{E: AttrCardinality, A: AttrType, V: AttrTypeRef, T: Tx},
+	{E: AttrCardinalityOne, A: DbIdent, V: String("sys/attr/cardinality/one"), T: Tx},
+	{E: AttrCardinalityMany, A: DbIdent, V: String("sys/attr/cardinality/many"), T: Tx},
 	{E: Tx, A: TxAt, V: Inst(epoch), T: Tx},
 }
 
@@ -55,10 +59,11 @@ type Attr struct {
 
 // This could be computed from Datums but this is smaller than the reducer code
 var Attrs map[ID]Attr = map[ID]Attr{
-	DbIdent:    {Typ: AttrTypeString, Unique: true},
-	AttrUnique: {Typ: AttrTypeRef},
-	AttrType:   {Typ: AttrTypeRef},
-	TxAt:       {Typ: AttrTypeInst},
+	DbIdent:         {Typ: AttrTypeString, Unique: true},
+	AttrUnique:      {Typ: AttrTypeRef},
+	AttrType:        {Typ: AttrTypeRef},
+	AttrCardinality: {Typ: AttrTypeRef},
+	TxAt:            {Typ: AttrTypeInst},
 }
 
 func ValidValue(typ ID, value Value) (ok bool) {

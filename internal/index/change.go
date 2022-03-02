@@ -9,6 +9,10 @@ import (
 
 func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 	attr, ok := idx.attrs[assertion.A]
+	if !ok {
+		err = ErrInvalidAttr
+		return
+	}
 	if ok && !sys.ValidValue(attr.Typ, assertion.V) {
 		err = ErrInvalidValue
 		return
@@ -26,6 +30,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 				return
 			}
 			attr.Typ = v
+			idx.attrs[assertion.E] = attr
 		} else {
 			idx.attrs[assertion.E] = sys.Attr{Typ: v}
 		}
@@ -39,6 +44,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 				return
 			}
 			attr.Unique = unique
+			idx.attrs[assertion.E] = attr
 		} else {
 			idx.attrs[assertion.E] = sys.Attr{Unique: unique}
 		}
@@ -56,6 +62,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 				return
 			}
 			attr.Many = many
+			idx.attrs[assertion.E] = attr
 		} else {
 			idx.attrs[assertion.E] = sys.Attr{Many: many}
 		}
@@ -68,7 +75,11 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		idx.idents[ident] = assertion.E
 		idx.identNames[assertion.E] = ident
 	}
-	conclusion, _ = idx.assertCardinalityOne(assertion)
+	if attr.Many {
+		panic("yo")
+	} else {
+		conclusion, _ = idx.assertCardinalityOne(assertion)
+	}
 	return
 }
 
