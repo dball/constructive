@@ -3,6 +3,8 @@ package types
 import (
 	"errors"
 	"time"
+
+	"github.com/dball/constructive/internal/iterator"
 )
 
 type Datum struct {
@@ -87,9 +89,9 @@ func (LookupRef) IsARef() {}
 func (Ident) IsARef()     {}
 
 type Transaction struct {
-	ID     ID
-	NewIDs map[string]ID
-	DB     Database
+	ID       ID
+	NewIDs   map[TempID]ID
+	Database Database
 }
 
 type Request struct {
@@ -97,7 +99,7 @@ type Request struct {
 }
 
 type Database interface {
-	SelectSlice(index IndexType, selection Selection) []Datum
+	Select(selection Selection) *iterator.Iterator
 }
 
 type IndexType int
@@ -167,13 +169,9 @@ func (Inst) IsVSel()   {}
 func (VSet) IsVSel()   {}
 func (VRange) IsVSel() {}
 
-type ReadError interface{}
-type WriteError interface{}
-type Result interface{}
-
 type Connection interface {
-	Read(func(db Database) Result) (Result, ReadError)
-	Write(request Request) (Transaction, WriteError)
+	Read() Database
+	Write(request Request) (Transaction, error)
 }
 
 func ValueOf(x interface{}) (Value, error) {

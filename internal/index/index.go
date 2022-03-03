@@ -41,6 +41,16 @@ func (idx *BTreeIndex) InitSys() *BTreeIndex {
 	return idx
 }
 
+func (idx *BTreeIndex) Clone() *BTreeIndex {
+	return &BTreeIndex{
+		tree: *idx.tree.Clone(),
+		// TODO these either need to be guaranteed to be backwards compatible or need to be copied or similar
+		idents:     idx.idents,
+		identNames: idx.identNames,
+		attrs:      idx.attrs,
+	}
+}
+
 type BTreeIndex struct {
 	tree       btree.BTree
 	idents     map[String]ID

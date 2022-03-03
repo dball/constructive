@@ -8,6 +8,15 @@ import (
 )
 
 func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
+	if assertion.E == 0 {
+		err = ErrInvalidValue
+		return
+	}
+	if assertion.A == 0 {
+		err = ErrInvalidValue
+		return
+	}
+	// TODO validate T or nay
 	attr, ok := idx.attrs[assertion.A]
 	if !ok {
 		err = ErrInvalidAttr
