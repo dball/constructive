@@ -76,7 +76,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		idx.identNames[assertion.E] = ident
 	}
 	if attr.Many {
-		panic("yo")
+		conclusion, _ = idx.assertCardinalityMany(assertion)
 	} else {
 		conclusion, _ = idx.assertCardinalityOne(assertion)
 	}
@@ -127,4 +127,39 @@ func (idx *BTreeIndex) assertCardinalityOne(d Datum) (d0 Datum, changed bool) {
 		idx.tree.ReplaceOrInsert(node)
 		return extant.datum, true
 	}
+}
+
+func (idx *BTreeIndex) assertCardinalityMany(d Datum) (d0 Datum, changed bool) {
+	floor := Datum{E: d.E, A: d.A, V: d.V}
+	var extant Node
+	idx.tree.AscendGreaterOrEqual(Node{IndexEAV, floor}, func(item btree.Item) bool {
+		node := item.(Node)
+		if node.kind != IndexEAV {
+			return false
+		}
+		datum := node.datum
+		if datum.E > d.E || datum.A > d.A {
+			return false
+		}
+		switch Compare(datum.V, d.V) {
+		case 0:
+			extant = node
+			return true
+		case 1:
+			return false
+		default:
+			return true
+		}
+	})
+	if extant.datum.E != 0 {
+		return extant.datum, false
+	}
+	node := Node{IndexEAV, d}
+	idx.tree.ReplaceOrInsert(node)
+	node.kind = IndexAEV
+	idx.tree.ReplaceOrInsert(node)
+	// TODO only for unique a
+	node.kind = IndexAVE
+	idx.tree.ReplaceOrInsert(node)
+	return Datum{}, true
 }

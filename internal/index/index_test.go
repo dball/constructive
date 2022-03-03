@@ -51,7 +51,13 @@ func TestAttrs(t *testing.T) {
 			_, err := idx.Assert(D(1000, 501, Int(109), 102))
 			require.NoError(t, err)
 			sel := idx.Select(Selection{E: ID(1000), A: ID(501)})
-			assert.Equal(t, []Datum{D(1000, 501, Int(23), 101), D(1000, 501, Int(109), 101)}, slurp(sel))
+			assert.Equal(t, []Datum{D(1000, 501, Int(23), 101), D(1000, 501, Int(109), 102)}, slurp(sel))
+		})
+		t.Run("adds another integer value", func(t *testing.T) {
+			_, err := idx.Assert(D(1000, 501, Int(99), 103))
+			require.NoError(t, err)
+			sel := idx.Select(Selection{E: ID(1000), A: ID(501)})
+			assert.Equal(t, []Datum{D(1000, 501, Int(23), 101), D(1000, 501, Int(99), 103), D(1000, 501, Int(109), 102)}, slurp(sel))
 		})
 	})
 }
