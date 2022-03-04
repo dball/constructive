@@ -1,11 +1,50 @@
 package destruct
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/dball/constructive/pkg/sys"
 	. "github.com/dball/constructive/pkg/types"
 )
+
+var symCount uint64
+
+func Schema(x interface{}) []Claim {
+	typ := reflect.TypeOf(x)
+	n := typ.NumField()
+	claims := make([]Claim, 0, n)
+	for i := 0; i < n; i++ {
+		fieldType := typ.Field(i)
+		attr, ok := fieldType.Tag.Lookup("attr")
+		if !ok {
+			continue
+		}
+		if attr == sys.DbId {
+			continue
+		}
+		var attrType ID
+		switch fieldType.Type.Kind() {
+		case reflect.Bool:
+			attrType = sys.AttrTypeBool
+		case reflect.Int:
+			attrType = sys.AttrTypeInt
+		case reflect.String:
+			attrType = sys.AttrTypeString
+		case reflect.Struct:
+			panic("TODO time")
+		default:
+			panic("TODO what even")
+		}
+		symCount++
+		e := TempID(fmt.Sprintf("%d", symCount))
+		claims = append(claims,
+			Claim{E: e, A: sys.DbIdent, V: String(attr)},
+			Claim{E: e, A: sys.AttrType, V: attrType},
+		)
+	}
+	return claims
+}
 
 func Destruct(x interface{}) []Claim {
 	typ := reflect.TypeOf(x)
@@ -48,7 +87,13 @@ func Destruct(x interface{}) []Claim {
 		for i := range claims {
 			claims[i].E = id
 		}
+	} else {
+		symCount++
+		// TODO note we could use a different TempID type here and keep the whole string domain available to our callers
+		tempID := TempID(fmt.Sprintf("%d", symCount))
+		for i := range claims {
+			claims[i].E = tempID
+		}
 	}
-	// else assign a tempid?
 	return claims
 }
