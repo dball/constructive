@@ -109,6 +109,14 @@ func (idx *BTreeIndex) Select(sel Selection) *iterator.Iterator {
 	return iterator.BuildIterator(&iterators)
 }
 
+func (idx *BTreeIndex) SelectOne(sel Selection) (datum Datum) {
+	iter := idx.Select(sel)
+	if iter == nil || !iter.Next() {
+		return
+	}
+	return iter.Value().(Datum)
+}
+
 func (idx *BTreeIndex) buildConstraints(sel Selection) Constraints {
 	c := Constraints{
 		E: idx.resolveESel(sel.E),

@@ -45,17 +45,20 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		}
 	case sys.AttrUnique:
 		v := assertion.V.(ID)
-		unique := sys.ValidUnique(v)
+		if !sys.ValidUnique(v) {
+			err = ErrInvalidAttrUnique
+			return
+		}
 		attr, ok := idx.attrs[assertion.E]
 		if ok {
-			if attr.Unique && !unique {
+			if attr.Unique != 0 && attr.Unique != v {
 				err = ErrAttrUniqueChange
 				return
 			}
-			attr.Unique = unique
+			attr.Unique = v
 			idx.attrs[assertion.E] = attr
 		} else {
-			idx.attrs[assertion.E] = sys.Attr{Unique: unique}
+			idx.attrs[assertion.E] = sys.Attr{Unique: v}
 		}
 	case sys.AttrCardinality:
 		v := assertion.V.(ID)

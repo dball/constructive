@@ -17,6 +17,11 @@ func BuildIndex() *BTreeIndex {
 	}
 }
 
+func (idx *BTreeIndex) GetAttr(id ID) (attr sys.Attr, ok bool) {
+	attr, ok = idx.attrs[id]
+	return
+}
+
 func (idx *BTreeIndex) InitSys() *BTreeIndex {
 	for _, datum := range sys.Datums {
 		idx.assertCardinalityOne(datum)
