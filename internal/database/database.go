@@ -39,9 +39,12 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 	id := conn.nextID
 	txn.ID = conn.allocID()
 	for _, claim := range request.Claims {
+		a := conn.resolveARef(claim.A)
+		v := claim.V
+		e := conn.resolveEWriteRef(txn, a, v, claim.E)
 		datum := Datum{
-			E: conn.resolveEWriteRef(txn, claim.E),
-			A: conn.resolveARef(claim.A),
+			E: e,
+			A: a,
 			V: claim.V,
 		}
 		_, err = newIdx.Assert(datum)
@@ -72,7 +75,7 @@ func (conn *BTreeConnection) allocID() (id ID) {
 	return
 }
 
-func (conn *BTreeConnection) resolveEWriteRef(txn Transaction, eref EWriteRef) ID {
+func (conn *BTreeConnection) resolveEWriteRef(txn Transaction, a ID, v Value, eref EWriteRef) ID {
 	switch e := eref.(type) {
 	case ID:
 		return e
@@ -80,10 +83,21 @@ func (conn *BTreeConnection) resolveEWriteRef(txn Transaction, eref EWriteRef) I
 		panic("TODO")
 	case TempID:
 		id, ok := txn.NewIDs[e]
-		if !ok {
-			id = conn.allocID()
-			txn.NewIDs[e] = id
+		if ok {
+			return id
 		}
+		attr, ok := conn.idx.GetAttr(a)
+		if ok && attr.Unique == sys.AttrUniqueIdentity {
+			iter := conn.idx.Filter(IndexAVE, Datum{A: a, V: v})
+			if iter.Next() {
+				d := iter.Value().(Datum)
+				id = d.E
+				txn.NewIDs[e] = id
+				return id
+			}
+		}
+		id = conn.allocID()
+		txn.NewIDs[e] = id
 		return id
 	case TxnID:
 		return txn.ID
@@ -104,43 +118,3 @@ func (conn *BTreeConnection) resolveARef(aref ARef) ID {
 	}
 	return ID(0)
 }
-
-/*
-func (idx *BTreeIndex) Lookup(ref LookupRef) ID {
-	var A ID
-	switch a := ref.A.(type) {
-	case ID:
-		A = a
-	case LookupRef:
-		A = idx.Lookup(a)
-	case Ident:
-		c := Constraints{
-			A: ,
-		}
-	}
-}
-
-func (idx *BTreeIndex) Resolve(sel Selection) (c Constraints) {
-	switch e := sel.E.(type) {
-	case ID:
-		c.E = IDSet{e: void}
-		return c
-	case LookupRef:
-
-	case Ident:
-	case ESet:
-	case ERange:
-	default:
-	}
-	switch sel.A.(type) {
-	case ID:
-	case LookupRef:
-	case Ident:
-	case Attr:
-	case ASet:
-	case ARange:
-	default:
-	}
-	panic("TODO")
-}
-*/
