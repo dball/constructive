@@ -63,15 +63,15 @@ func TestAttrs(t *testing.T) {
 }
 
 func TestInitSystem(t *testing.T) {
-	idx := BuildIndex()
-	idx.InitSys()
+	idx := BuildIndex().InitSys()
 	datums := slurp(idx.Select(Selection{E: sys.DbIdent}))
 	assert.Len(t, datums, 3)
 }
 
 func TestAssert(t *testing.T) {
-	t.Skip("create 500 attr")
-	idx := BuildIndex()
+	idx := BuildIndex().InitSys()
+	idx.Assert(D(500, sys.DbIdent, String("person/age"), 100))
+	idx.Assert(D(500, sys.AttrType, sys.AttrTypeInt, 100))
 	t.Run("asserting a new datum returns the empty datum", func(t *testing.T) {
 		extant, err := idx.Assert(D(1000, 500, Int(1), 100))
 		require.NoError(t, err)
@@ -94,13 +94,14 @@ func TestAssert(t *testing.T) {
 	})
 	t.Run("asserting an ident registers it in the cache", func(t *testing.T) {
 		idx.Assert(D(1001, sys.DbIdent, String("person/name"), 104))
-		assert.Equal(t, map[String]ID{"person/name": ID(1001)}, idx.idents)
+		assert.Equal(t, String("person/name"), idx.identNames[ID(1001)])
 	})
 }
 
 func TestSelect(t *testing.T) {
-	t.Skip("create 500 attr")
-	idx := BuildIndex()
+	idx := BuildIndex().InitSys()
+	idx.Assert(D(500, sys.DbIdent, String("person/name"), 100))
+	idx.Assert(D(500, sys.AttrType, sys.AttrTypeString, 100))
 	idx.Assert(D(1000, 500, String("Donald"), 100))
 	idx.Assert(D(1001, 500, String("Stephen"), 100))
 	iter := idx.Select(Selection{
@@ -116,6 +117,11 @@ func TestSelect(t *testing.T) {
 func TestSelectLots(t *testing.T) {
 	t.Skip("create 500-504 attrs")
 	idx := BuildIndex().InitSys()
+	for a := 500; a <= 504; a++ {
+		idx.Assert(D(ID(a), sys.DbIdent, String("person/name"), 100))
+		idx.Assert(D(ID(a), sys.AttrType, sys.AttrTypeString, 100))
+
+	}
 	es := []ID{1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009}
 	as := []ID{500, 501, 502, 503, 504}
 	v := String("a")
