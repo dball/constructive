@@ -26,7 +26,12 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		err = ErrInvalidValue
 		return
 	}
-	// TODO call assertOne or assertMany depending on a's cardinality
+	if attr.Unique != 0 {
+		if idx.Filter(IndexAVE, Datum{A: assertion.A, V: assertion.V}).Next() {
+			err = ErrInvalidValue
+			return
+		}
+	}
 	// TODO if a is unique, enforce uniqueness
 	switch assertion.A {
 	case sys.AttrType:

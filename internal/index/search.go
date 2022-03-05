@@ -133,6 +133,66 @@ func (idx *BTreeIndex) buildConstraints(sel Selection) Constraints {
 	return c
 }
 
+type btreeFilter struct {
+	indexType IndexType
+	start     Datum
+	idx       *BTreeIndex
+}
+
+func (filter btreeFilter) Each(accept iterator.Accept) {
+	start := Node{kind: filter.indexType, datum: filter.start}
+	var treeIter func(item btree.Item) bool
+	switch filter.indexType {
+	case IndexAVE:
+		switch {
+		case filter.start.A == 0:
+			treeIter = func(item btree.Item) bool {
+				node := item.(Node)
+				if node.kind != IndexAVE {
+					return false
+				}
+				if !accept(node.datum) {
+					return false
+				}
+				return true
+			}
+		case filter.start.V == nil:
+			treeIter = func(item btree.Item) bool {
+				node := item.(Node)
+				if node.kind != IndexAVE || node.datum.A != filter.start.A {
+					return false
+				}
+				if !accept(node.datum) {
+					return false
+				}
+				return true
+			}
+		case filter.start.E == 0:
+			treeIter = func(item btree.Item) bool {
+				node := item.(Node)
+				if node.kind != IndexAVE || node.datum.A != filter.start.A || Compare(node.datum.V, filter.start.V) != 0 {
+					return false
+				}
+				if !accept(node.datum) {
+					return false
+				}
+				return true
+			}
+		}
+	default:
+		panic("TODO")
+	}
+	filter.idx.tree.AscendGreaterOrEqual(start, treeIter)
+}
+
+func (filter btreeFilter) Iterator() *iterator.Iterator {
+	return iterator.BuildIterator(filter)
+}
+
+func (idx *BTreeIndex) Filter(typ IndexType, d Datum) *iterator.Iterator {
+	return btreeFilter{idx: idx, indexType: typ, start: d}.Iterator()
+}
+
 func (idx *BTreeIndex) ResolveIdent(ident Ident) ID {
 	return idx.idents[String(ident)]
 }

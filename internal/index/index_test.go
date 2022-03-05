@@ -10,7 +10,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAttrs(t *testing.T) {
+func TestAttrUniques(t *testing.T) {
+	t.Run("identity uniqueness forbids duplicate evs", func(t *testing.T) {
+		idx := BuildIndex().InitSys()
+		idx.Assert(D(500, sys.DbIdent, String("person/uuid"), 100))
+		idx.Assert(D(500, sys.AttrType, sys.AttrTypeString, 100))
+		idx.Assert(D(500, sys.AttrUnique, sys.AttrUniqueIdentity, 100))
+		idx.Assert(D(1000, 500, String("uuid-1"), 100))
+		_, err := idx.Assert(D(1001, 500, String("uuid-1"), 100))
+		assert.Error(t, err)
+	})
+
+	t.Run("value uniqueness forbids duplicate evs", func(t *testing.T) {
+		idx := BuildIndex().InitSys()
+		idx.Assert(D(500, sys.DbIdent, String("person/name"), 100))
+		idx.Assert(D(500, sys.AttrType, sys.AttrTypeString, 100))
+		idx.Assert(D(500, sys.AttrUnique, sys.AttrUniqueValue, 100))
+		idx.Assert(D(1000, 500, String("Donald"), 100))
+		_, err := idx.Assert(D(1001, 500, String("Donald"), 100))
+		assert.Error(t, err)
+	})
+}
+
+func TestAttrsTypesAndCardinality(t *testing.T) {
 	idx := BuildIndex().InitSys()
 	t.Run("assert attrs", func(t *testing.T) {
 		idx.Assert(D(500, sys.DbIdent, String("person/name"), 100))
