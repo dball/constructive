@@ -27,8 +27,14 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		return
 	}
 	if attr.Unique != 0 {
-		if idx.Filter(IndexAVE, Datum{A: assertion.A, V: assertion.V}).Next() {
-			err = ErrInvalidValue
+		iter := idx.Filter(IndexAVE, Datum{A: assertion.A, V: assertion.V})
+		if iter.Next() {
+			extant := iter.Value().(Datum)
+			if extant.E == assertion.E {
+				conclusion = extant
+			} else {
+				err = ErrInvalidValue
+			}
 			return
 		}
 	}
