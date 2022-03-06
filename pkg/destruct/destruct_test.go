@@ -1,6 +1,7 @@
 package destruct
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/dball/constructive/pkg/sys"
@@ -18,7 +19,7 @@ type Person struct {
 func Test_Schema(t *testing.T) {
 	symCount = 0
 	p := Person{}
-	claims := Schema(p)
+	claims := Schema(reflect.TypeOf(p))
 	expected := []Claim{
 		{E: TempID("1"), A: sys.DbIdent, V: String("person/name")},
 		{E: TempID("1"), A: sys.AttrType, V: sys.AttrTypeString},
@@ -34,7 +35,7 @@ func Test_Destruct(t *testing.T) {
 	symCount = 0
 	t.Run("identified person", func(t *testing.T) {
 		p := Person{ID: 1, Name: "Donald", Age: 46, Active: true}
-		claims := Destruct(p)
+		claims := DestructOnlyData(p)
 		expected := []Claim{
 			{E: ID(1), A: Ident("person/name"), V: String("Donald")},
 			{E: ID(1), A: Ident("person/age"), V: Int(46)},
@@ -44,7 +45,7 @@ func Test_Destruct(t *testing.T) {
 	})
 	t.Run("unidentified person", func(t *testing.T) {
 		p := Person{Name: "Donald", Age: 46, Active: true}
-		claims := Destruct(p)
+		claims := DestructOnlyData(p)
 		expected := []Claim{
 			{E: TempID("1"), A: Ident("person/name"), V: String("Donald")},
 			{E: TempID("1"), A: Ident("person/age"), V: Int(46)},

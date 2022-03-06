@@ -10,8 +10,7 @@ import (
 
 var symCount uint64
 
-func Schema(x interface{}) []Claim {
-	typ := reflect.TypeOf(x)
+func Schema(typ reflect.Type) []Claim {
 	n := typ.NumField()
 	claims := make([]Claim, 0, n)
 	for i := 0; i < n; i++ {
@@ -46,53 +45,84 @@ func Schema(x interface{}) []Claim {
 	return claims
 }
 
-func Destruct(x interface{}) []Claim {
-	typ := reflect.TypeOf(x)
-	n := typ.NumField()
-	claims := make([]Claim, 0, n)
-	var id ID
-	for i := 0; i < n; i++ {
-		fieldType := typ.Field(i)
-		attr, ok := fieldType.Tag.Lookup("attr")
-		if !ok {
-			continue
+func Destruct(xs ...interface{}) []Claim {
+	return destruct(true, xs)
+}
+
+func DestructOnlyData(xs ...interface{}) []Claim {
+	return destruct(false, xs)
+}
+
+func destruct(schema bool, xs []interface{}) []Claim {
+	var claims []Claim
+	var types []reflect.Type
+	for _, x := range xs {
+		typ := reflect.TypeOf(x)
+		n := typ.NumField()
+		if claims == nil {
+			data := len(xs) * n
+			if schema {
+				data += n
+			}
+			claims = make([]Claim, 0, data)
 		}
-		fieldValue := reflect.ValueOf(x).Field(i)
-		if attr == sys.DbId {
+		if schema {
+			done := false
+			for _, t := range types {
+				if typ == t {
+					done = true
+					break
+				}
+			}
+			if !done {
+				claims = append(claims, Schema(typ)...)
+				types = append(types, typ)
+			}
+		}
+		var id ID
+		for i := 0; i < n; i++ {
+			fieldType := typ.Field(i)
+			attr, ok := fieldType.Tag.Lookup("attr")
+			if !ok {
+				continue
+			}
+			fieldValue := reflect.ValueOf(x).Field(i)
+			if attr == sys.DbId {
+				switch fieldType.Type.Kind() {
+				case reflect.Uint:
+					id = ID(fieldValue.Uint())
+				default:
+					// TODO error?
+				}
+				continue
+			}
+			var value Value
 			switch fieldType.Type.Kind() {
-			case reflect.Uint:
-				id = ID(fieldValue.Uint())
+			case reflect.Bool:
+				value = Bool(fieldValue.Bool())
+			case reflect.Int:
+				value = Int(fieldValue.Int())
+			case reflect.String:
+				value = String(fieldValue.String())
+			case reflect.Struct:
+				// TODO time
 			default:
 				// TODO error?
+				continue
 			}
-			continue
+			claims = append(claims, Claim{E: ID(0), A: Ident(attr), V: value})
 		}
-		var value Value
-		switch fieldType.Type.Kind() {
-		case reflect.Bool:
-			value = Bool(fieldValue.Bool())
-		case reflect.Int:
-			value = Int(fieldValue.Int())
-		case reflect.String:
-			value = String(fieldValue.String())
-		case reflect.Struct:
-			// TODO time
-		default:
-			// TODO error?
-			continue
-		}
-		claims = append(claims, Claim{E: ID(0), A: Ident(attr), V: value})
-	}
-	if id != ID(0) {
-		for i := range claims {
-			claims[i].E = id
-		}
-	} else {
-		symCount++
-		// TODO note we could use a different TempID type here and keep the whole string domain available to our callers
-		tempID := TempID(fmt.Sprintf("%d", symCount))
-		for i := range claims {
-			claims[i].E = tempID
+		if id != ID(0) {
+			for i := range claims {
+				claims[i].E = id
+			}
+		} else {
+			symCount++
+			// TODO note we could use a different TempID type here and keep the whole string domain available to our callers
+			tempID := TempID(fmt.Sprintf("%d", symCount))
+			for i := range claims {
+				claims[i].E = tempID
+			}
 		}
 	}
 	return claims
