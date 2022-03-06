@@ -38,7 +38,6 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 			return
 		}
 	}
-	// TODO if a is unique, enforce uniqueness
 	switch assertion.A {
 	case sys.AttrType:
 		v := assertion.V.(ID)
