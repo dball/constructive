@@ -42,7 +42,7 @@ func TestTempIDs(t *testing.T) {
 			Claims: []Claim{
 				{E: TempID("name"), A: sys.DbIdent, V: String("person/name")},
 				{E: TempID("name"), A: sys.AttrType, V: sys.AttrTypeString},
-				{E: TempID("name"), A: sys.AttrUnique, V: sys.AttrUniqueIdentity},
+				{E: TempID("name"), A: sys.AttrUnique, V: sys.AttrUniqueValue},
 				{E: TempID("age"), A: sys.DbIdent, V: String("person/age")},
 				{E: TempID("age"), A: sys.AttrType, V: sys.AttrTypeInt},
 			}},
@@ -65,7 +65,38 @@ func TestTempIDs(t *testing.T) {
 				{E: TempID("me"), A: age, V: Int(17)},
 			},
 		})
-		require.NoError(t, err)
-		assert.Equal(t, donald, txn.NewIDs[TempID("me")])
+		assert.Error(t, err)
 	})
+	t.Run("value uniqueness dioes not resolve to an extant entity", func(t *testing.T) {
+		conn := OpenConnection()
+		txn, err := conn.Write(Request{
+			Claims: []Claim{
+				{E: TempID("name"), A: sys.DbIdent, V: String("person/name")},
+				{E: TempID("name"), A: sys.AttrType, V: sys.AttrTypeString},
+				{E: TempID("name"), A: sys.AttrUnique, V: sys.AttrUniqueValue},
+				{E: TempID("age"), A: sys.DbIdent, V: String("person/age")},
+				{E: TempID("age"), A: sys.AttrType, V: sys.AttrTypeInt},
+			}},
+		)
+		require.NoError(t, err)
+		name := txn.NewIDs[TempID("name")]
+		age := txn.NewIDs[TempID("age")]
+		txn, err = conn.Write(Request{
+			Claims: []Claim{
+				{E: TempID("me"), A: name, V: String("Donald")},
+				{E: TempID("me"), A: age, V: Int(7)},
+			},
+		})
+		require.NoError(t, err)
+		donald := txn.NewIDs[TempID("me")]
+		assert.NotEmpty(t, donald)
+		txn, err = conn.Write(Request{
+			Claims: []Claim{
+				{E: TempID("me"), A: name, V: String("Donald")},
+				{E: TempID("me"), A: age, V: Int(17)},
+			},
+		})
+		assert.ErrorIs(t, err, ErrInvalidValue)
+	})
+
 }
