@@ -80,6 +80,7 @@ func destruct(schema bool, xs []interface{}) []Claim {
 			}
 		}
 		var id ID
+		xclaims := make([]Claim, 0, n)
 		for i := 0; i < n; i++ {
 			fieldType := typ.Field(i)
 			attr, ok := fieldType.Tag.Lookup("attr")
@@ -110,20 +111,22 @@ func destruct(schema bool, xs []interface{}) []Claim {
 				// TODO error?
 				continue
 			}
-			claims = append(claims, Claim{E: ID(0), A: Ident(attr), V: value})
+			xclaims = append(xclaims, Claim{E: ID(0), A: Ident(attr), V: value})
 		}
 		if id != ID(0) {
-			for i := range claims {
-				claims[i].E = id
+			for i := range xclaims {
+				xclaims[i].E = id
 			}
 		} else {
 			symCount++
+			fmt.Println("assign symcount", symCount)
 			// TODO note we could use a different TempID type here and keep the whole string domain available to our callers
 			tempID := TempID(fmt.Sprintf("%d", symCount))
-			for i := range claims {
-				claims[i].E = tempID
+			for i := range xclaims {
+				xclaims[i].E = tempID
 			}
 		}
+		claims = append(claims, xclaims...)
 	}
 	return claims
 }

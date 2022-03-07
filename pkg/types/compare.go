@@ -67,7 +67,18 @@ func Compare(v1 Value, v2 Value) int {
 		default:
 			return 0
 		}
+	case Bool:
+		x2, ok := v2.(Bool)
+		if !ok {
+			return typeCompare(x1) - typeCompare(x2)
+		}
+		if x1 == x2 {
+			return 0
+		}
+		if x1 {
+			return 1
+		}
+		return -1
 	}
-
 	panic("welp")
 }

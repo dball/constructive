@@ -1,22 +1,40 @@
 package constructive
 
 import (
+	"github.com/dball/constructive/internal/database"
 	"github.com/dball/constructive/internal/iterator"
+	"github.com/dball/constructive/pkg/destruct"
 	"github.com/dball/constructive/pkg/types"
 )
 
-// Record is a struct with fields that have attr tags that control its
-// marshaling into and out of a constructive database.
-type Record interface{}
-
 // Connection is a writable constructive database.
 type Connection interface {
-	types.Connection
-	// Record records the given records and returns the successful transaction
+	// Write records the given records and returns the successful transaction
 	// or error.
-	Record(records ...Record) (Transaction, error)
-	// Stable returns a stable snapshot of the database.
-	Stable() Database
+	Write(records ...interface{}) (Transaction, error)
+	// Read returns a stable snapshot of the database.
+	Read() Database
+}
+
+type connection struct {
+	connection types.Connection
+}
+
+func (conn connection) Write(records ...interface{}) (Transaction, error) {
+	claims := destruct.Destruct(records...)
+	txn, err := conn.connection.Write(types.Request{Claims: claims})
+	if err != nil {
+		return Transaction{}, err
+	}
+	return Transaction{ID: txn.ID, NewIDs: txn.NewIDs, Database: db{txn.Database}}, nil
+}
+
+func (conn connection) Read() Database {
+	return db{conn.connection.Read()}
+}
+
+func OpenConnection() Connection {
+	return connection{connection: database.OpenConnection()}
 }
 
 // Transaction represents a successful recording of records or datums.
@@ -31,14 +49,23 @@ type Transaction struct {
 
 // Database is a stable snapshot of data.
 type Database interface {
-	types.Database
 	// Query returns an iterator of all records matching all of the selections, where the
 	// records are instances of the exemplar with values corresponding to the fields' attrs.
-	Query(exemplar Record, selections ...types.Selection) *iterator.Iterator
+	Query(exemplar interface{}, selections ...types.Selection) *iterator.Iterator
 	// Fetch returns the first record matching the non-empty values of the attr fields in the exemplar.
 	// The exemplar must have an entity id or at least one unique attr field. If multiple such fields
 	// are given and resolve to different entities, this returns false.
-	Fetch(exemplar Record) (Record, bool)
-	// FetchByID returns the record with the given entity id.
-	FetchByID(exemplar Record, id types.ID) (Record, bool)
+	Fetch(exemplar interface{}) (interface{}, bool)
+}
+
+type db struct {
+	database types.Database
+}
+
+func (db db) Query(exemplar interface{}, selections ...types.Selection) *iterator.Iterator {
+	panic("TODO")
+}
+
+func (db db) Fetch(exemplar interface{}) (interface{}, bool) {
+	panic("TODO")
 }
