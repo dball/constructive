@@ -92,3 +92,10 @@ func Construct2(ref interface{}, db Database, id ID) bool {
 	}
 	return found
 }
+
+func Fetch(ref interface{}, db Database) bool {
+	panic("TODO")
+	// refValue := reflect.ValueOf(ref)
+	// refType := reflect.TypeOf(ref)
+	// find sys/db/id and any unique attr fields
+}

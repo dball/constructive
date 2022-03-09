@@ -93,3 +93,33 @@ func (n1 Node) Less(than btree.Item) bool {
 	}
 	return (compareKind(n1.kind))(n1.datum, n2.datum) < 0
 }
+
+func (idx *BTreeIndex) ResolveEReadRef(eref EReadRef) (id ID) {
+	switch e := eref.(type) {
+	case ID:
+		id = e
+	case Ident:
+		id = idx.ResolveIdent(e)
+	case LookupRef:
+		a := idx.ResolveARef(e.A)
+		v := VSelValue(e.V)
+		iter := idx.Select(Selection{A: a, V: v})
+		if iter.Next() {
+			datum := iter.Value().(Datum)
+			id = datum.E
+		}
+	}
+	return
+}
+
+func (idx *BTreeIndex) ResolveARef(aref ARef) (id ID) {
+	switch a := aref.(type) {
+	case ID:
+		id = idx.ResolveEReadRef(a)
+	case Ident:
+		id = idx.ResolveEReadRef(a)
+	case LookupRef:
+		id = idx.ResolveEReadRef(a)
+	}
+	return
+}

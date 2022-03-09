@@ -21,3 +21,11 @@ func (db *BTreeDatabase) AttrByID(id ID) Attr {
 func (db *BTreeDatabase) AttrByIdent(ident Ident) Attr {
 	return db.idx.AttrByIdent(ident)
 }
+
+func (db *BTreeDatabase) ResolveEReadRef(eref EReadRef) (id ID) {
+	return db.idx.ResolveEReadRef(eref)
+}
+
+func (db *BTreeDatabase) ResolveARef(aref ARef) (id ID) {
+	return db.idx.ResolveARef(aref)
+}

@@ -102,6 +102,8 @@ type Database interface {
 	Select(selection Selection) *iterator.Iterator
 	AttrByID(id ID) Attr
 	AttrByIdent(ident Ident) Attr
+	ResolveEReadRef(eref EReadRef) ID
+	ResolveARef(aref ARef) ID
 }
 
 type IndexType int
@@ -189,6 +191,22 @@ func ValueOf(x interface{}) (Value, error) {
 	default:
 		return nil, ErrInvalidValue
 	}
+}
+
+func VSelValue(v Value) (vsel VSel) {
+	switch typed := v.(type) {
+	case String:
+		vsel = typed
+	case Int:
+		vsel = typed
+	case Bool:
+		vsel = typed
+	case Inst:
+		vsel = typed
+	case ID:
+		vsel = typed
+	}
+	return
 }
 
 var ErrInvalidValue error = errors.New("invalid value")
