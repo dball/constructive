@@ -3,6 +3,7 @@ package constructive
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,6 +20,11 @@ type Named struct {
 
 func TestEverything(t *testing.T) {
 	conn := OpenConnection()
-	_, err := conn.Write(Person{Name: "Donald", Age: 48}, Person{Name: "Stephen", Age: 44})
+	txn, err := conn.Write(Person{Name: "Donald", Age: 48})
 	require.NoError(t, err)
+	db := txn.Database
+	donald := Person{Name: "Donald"}
+	ok := db.Fetch(&donald)
+	require.True(t, ok)
+	assert.Equal(t, 48, donald.Age)
 }

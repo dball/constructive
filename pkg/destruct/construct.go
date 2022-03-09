@@ -7,18 +7,16 @@ import (
 	. "github.com/dball/constructive/pkg/types"
 )
 
-type attr struct {
-	id          ID
-	ident       Ident
-	typ         ID
-	cardinality ID
+type attrField struct {
+	attr  Attr
+	index int
 }
 
-func Construct(typ reflect.Type, database Database, id ID) interface{} {
+func Construct(typ reflect.Type, db Database, id ID) interface{} {
 	entity := reflect.New(typ)
 	mutable := entity.Elem()
 	n := typ.NumField()
-	fieldIndexesByAttrName := make(map[Ident]int, n)
+	attrFields := make(map[ID]attrField)
 	for i := 0; i < n; i++ {
 		field := typ.Field(i)
 		attrName, ok := field.Tag.Lookup("attr")
@@ -29,9 +27,29 @@ func Construct(typ reflect.Type, database Database, id ID) interface{} {
 			mutable.Field(i).SetUint(uint64(id))
 			continue
 		}
-		fieldIndexesByAttrName[Ident(attrName)] = i
+		attr := db.AttrByIdent(Ident(attrName))
+		if attr.ID == 0 {
+			continue
+		}
+		attrFields[attr.ID] = attrField{attr: attr, index: i}
 	}
-	// TODO resolve attr ids by name - method on database
-	// iter := database.Select(Selection{E: id})
-	panic("TODO")
+	found := false
+	iter := db.Select(Selection{E: id})
+	for iter.Next() {
+		found = true
+		datum := iter.Value().(Datum)
+		attrField, ok := attrFields[datum.A]
+		if !ok {
+			continue
+		}
+		switch attrField.attr.Type {
+		case sys.AttrTypeString:
+			mutable.Field(attrField.index).SetString(string(datum.V.(String)))
+		}
+	}
+	if !found {
+		// TODO or would we prefer an empty value, probably with no id?
+		return nil
+	}
+	return entity.Interface()
 }

@@ -52,10 +52,11 @@ type Database interface {
 	// Query returns an iterator of all records matching all of the selections, where the
 	// records are instances of the exemplar with values corresponding to the fields' attrs.
 	Query(exemplar interface{}, selections ...types.Selection) *iterator.Iterator
-	// Fetch returns the first record matching the non-empty values of the attr fields in the exemplar.
-	// The exemplar must have an entity id or at least one unique attr field. If multiple such fields
-	// are given and resolve to different entities, this returns false.
-	Fetch(exemplar interface{}) (interface{}, bool)
+	// Fetch examines the struct value of the given ref and searches the database for
+	// a unique record, using the entity id field, then any unique attr fields. Exactly
+	// one of these must have a non-empty value, otherwise this returns false. If a match
+	// is specified and found, the ref's struct's attr fields are set from the selected datums.
+	Fetch(ref interface{}) bool
 }
 
 type db struct {
@@ -66,6 +67,6 @@ func (db db) Query(exemplar interface{}, selections ...types.Selection) *iterato
 	panic("TODO")
 }
 
-func (db db) Fetch(exemplar interface{}) (interface{}, bool) {
+func (db db) Fetch(ref interface{}) bool {
 	panic("TODO")
 }
