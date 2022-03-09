@@ -53,3 +53,42 @@ func Construct(typ reflect.Type, db Database, id ID) interface{} {
 	}
 	return entity.Interface()
 }
+
+func Construct2(ref interface{}, db Database, id ID) bool {
+	refValue := reflect.ValueOf(ref)
+	refType := reflect.TypeOf(ref)
+	mutable := refValue.Elem()
+	n := refType.NumField()
+	attrFields := make(map[ID]attrField)
+	for i := 0; i < n; i++ {
+		field := refType.Field(i)
+		attrName, ok := field.Tag.Lookup("attr")
+		if !ok {
+			continue
+		}
+		if attrName == sys.DbId {
+			mutable.Field(i).SetUint(uint64(id))
+			continue
+		}
+		attr := db.AttrByIdent(Ident(attrName))
+		if attr.ID == 0 {
+			continue
+		}
+		attrFields[attr.ID] = attrField{attr: attr, index: i}
+	}
+	found := false
+	iter := db.Select(Selection{E: id})
+	for iter.Next() {
+		found = true
+		datum := iter.Value().(Datum)
+		attrField, ok := attrFields[datum.A]
+		if !ok {
+			continue
+		}
+		switch attrField.attr.Type {
+		case sys.AttrTypeString:
+			mutable.Field(attrField.index).SetString(string(datum.V.(String)))
+		}
+	}
+	return found
+}
