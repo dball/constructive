@@ -16,6 +16,14 @@ type Datum struct {
 
 type ID uint64
 
+type Attr struct {
+	ID          ID    `attr:"sys/db/id"`
+	Ident       Ident `attr:"sys/db/ident"`
+	Type        ID    `attr:"sys/attr/type"`
+	Cardinality ID    `attr:"sys/attr/cardinality"`
+	Unique      ID    `attr:"sys/db/unique"`
+}
+
 type Value interface {
 	IsValue()
 }
@@ -35,14 +43,6 @@ type Void struct{}
 
 func D(e ID, a ID, v Value, t ID) Datum {
 	return Datum{e, a, v, t}
-}
-
-type Attribute struct {
-	ID          ID     `attr:"sys/db/id"`
-	Name        String `attr:"sys/db/ident"`
-	Type        ID     `attr:"sys/attr/type"`
-	Cardinality ID     `attr:"sys/attr/cardinality"`
-	Unique      ID     `attr:"sys/db/unique"`
 }
 
 type LookupRef struct {
@@ -100,6 +100,8 @@ type Request struct {
 
 type Database interface {
 	Select(selection Selection) *iterator.Iterator
+	AttrByID(id ID) Attr
+	AttrByIdent(ident Ident) Attr
 }
 
 type IndexType int

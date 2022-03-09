@@ -22,7 +22,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		err = ErrInvalidAttr
 		return
 	}
-	if ok && !sys.ValidValue(attr.Typ, assertion.V) {
+	if ok && !sys.ValidValue(attr.Type, assertion.V) {
 		err = ErrInvalidValue
 		return
 	}
@@ -42,16 +42,17 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 	case sys.AttrType:
 		v := assertion.V.(ID)
 		// TODO validate attr type is a valid attr type
+		// TODO populate the Attr ident
 		attr, ok := idx.attrs[assertion.E]
 		if ok {
-			if attr.Typ != 0 && attr.Typ != v {
+			if attr.Type != 0 && attr.Type != v {
 				err = ErrAttrTypeChange
 				return
 			}
-			attr.Typ = v
+			attr.Type = v
 			idx.attrs[assertion.E] = attr
 		} else {
-			idx.attrs[assertion.E] = sys.Attr{Typ: v}
+			idx.attrs[assertion.E] = Attr{ID: assertion.E, Type: v}
 		}
 	case sys.AttrUnique:
 		v := assertion.V.(ID)
@@ -68,7 +69,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 			attr.Unique = v
 			idx.attrs[assertion.E] = attr
 		} else {
-			idx.attrs[assertion.E] = sys.Attr{Unique: v}
+			idx.attrs[assertion.E] = Attr{ID: assertion.E, Unique: v}
 		}
 	case sys.AttrCardinality:
 		v := assertion.V.(ID)
@@ -76,17 +77,16 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 			err = ErrInvalidAttrCardinality
 			return
 		}
-		many := v == sys.AttrCardinalityMany
 		attr, ok := idx.attrs[assertion.E]
 		if ok {
-			if attr.Many && !many {
+			if attr.Cardinality != 0 && attr.Cardinality != v {
 				err = ErrAttrCardinalityChange
 				return
 			}
-			attr.Many = many
+			attr.Cardinality = v
 			idx.attrs[assertion.E] = attr
 		} else {
-			idx.attrs[assertion.E] = sys.Attr{Many: many}
+			idx.attrs[assertion.E] = Attr{ID: assertion.E, Cardinality: v}
 		}
 	case sys.DbIdent:
 		ident := assertion.V.(String)
@@ -97,7 +97,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		idx.idents[ident] = assertion.E
 		idx.identNames[assertion.E] = ident
 	}
-	if attr.Many {
+	if attr.Cardinality == sys.AttrCardinalityMany {
 		conclusion, _ = idx.assertCardinalityMany(assertion)
 	} else {
 		conclusion, _ = idx.assertCardinalityOne(assertion)

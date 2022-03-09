@@ -53,19 +53,13 @@ var Datums []Datum = []Datum{
 	{E: Tx, A: TxAt, V: Inst(epoch), T: Tx},
 }
 
-type Attr struct {
-	Typ    ID
-	Many   bool
-	Unique ID
-}
-
 // This could be computed from Datums but this is smaller than the reducer code
 var Attrs map[ID]Attr = map[ID]Attr{
-	DbIdent:         {Typ: AttrTypeString, Unique: AttrUniqueIdentity},
-	AttrUnique:      {Typ: AttrTypeRef},
-	AttrType:        {Typ: AttrTypeRef},
-	AttrCardinality: {Typ: AttrTypeRef},
-	TxAt:            {Typ: AttrTypeInst},
+	DbIdent:         {Type: AttrTypeString, Unique: AttrUniqueIdentity},
+	AttrUnique:      {Type: AttrTypeRef},
+	AttrType:        {Type: AttrTypeRef},
+	AttrCardinality: {Type: AttrTypeRef},
+	TxAt:            {Type: AttrTypeInst},
 }
 
 func ValidValue(typ ID, value Value) (ok bool) {

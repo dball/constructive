@@ -13,13 +13,16 @@ func BuildIndex() *BTreeIndex {
 		tree:       *btree.New(16),
 		idents:     make(map[String]ID, 256),
 		identNames: make(map[ID]String, 256),
-		attrs:      make(map[ID]sys.Attr, 256),
+		attrs:      make(map[ID]Attr, 256),
 	}
 }
 
-func (idx *BTreeIndex) GetAttr(id ID) (attr sys.Attr, ok bool) {
-	attr, ok = idx.attrs[id]
-	return
+func (idx *BTreeIndex) AttrByID(id ID) Attr {
+	return idx.attrs[id]
+}
+
+func (idx *BTreeIndex) AttrByIdent(ident Ident) Attr {
+	return idx.attrs[idx.idents[String(ident)]]
 }
 
 func (idx *BTreeIndex) InitSys() *BTreeIndex {
@@ -60,7 +63,7 @@ type BTreeIndex struct {
 	tree       btree.BTree
 	idents     map[String]ID
 	identNames map[ID]String
-	attrs      map[ID]sys.Attr
+	attrs      map[ID]Attr
 }
 
 type Node struct {

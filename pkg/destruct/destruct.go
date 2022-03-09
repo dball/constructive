@@ -14,8 +14,8 @@ func Schema(typ reflect.Type) []Claim {
 	n := typ.NumField()
 	claims := make([]Claim, 0, n)
 	for i := 0; i < n; i++ {
-		fieldType := typ.Field(i)
-		attr, ok := fieldType.Tag.Lookup("attr")
+		field := typ.Field(i)
+		attr, ok := field.Tag.Lookup("attr")
 		if !ok {
 			continue
 		}
@@ -23,7 +23,7 @@ func Schema(typ reflect.Type) []Claim {
 			continue
 		}
 		var attrType ID
-		switch fieldType.Type.Kind() {
+		switch field.Type.Kind() {
 		case reflect.Bool:
 			attrType = sys.AttrTypeBool
 		case reflect.Int:
