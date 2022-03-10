@@ -78,6 +78,10 @@ func DestructOnlyData(xs ...interface{}) []Claim {
 	return destruct(false, xs)
 }
 
+func pluckFieldValue(structField reflect.StructField, refValue reflect.Value) Value {
+	panic("TODO")
+}
+
 func destruct(schema bool, xs []interface{}) []Claim {
 	var claims []Claim
 	var types []reflect.Type
@@ -122,6 +126,7 @@ func destruct(schema bool, xs []interface{}) []Claim {
 				}
 				continue
 			}
+			// TODO parseFieldValue?
 			var value Value
 			switch fieldType.Type.Kind() {
 			case reflect.Bool:
