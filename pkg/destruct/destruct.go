@@ -136,6 +136,9 @@ func destruct(schema bool, xs []interface{}) []Claim {
 				// TODO error?
 				continue
 			}
+			if attr.Unique != 0 && value.IsEmpty() {
+				continue
+			}
 			xclaims = append(xclaims, Claim{E: ID(0), A: attr.Ident, V: value})
 		}
 		if id != ID(0) {

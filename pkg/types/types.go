@@ -25,7 +25,7 @@ type Attr struct {
 }
 
 type Value interface {
-	IsValue()
+	IsEmpty() bool
 }
 
 type String string
@@ -33,11 +33,11 @@ type Int int
 type Bool bool
 type Inst time.Time
 
-func (String) IsValue() {}
-func (Int) IsValue()    {}
-func (Bool) IsValue()   {}
-func (Inst) IsValue()   {}
-func (ID) IsValue()     {}
+func (x String) IsEmpty() bool { return string(x) == "" }
+func (x Int) IsEmpty() bool    { return int64(x) == 0 }
+func (x Bool) IsEmpty() bool   { return !bool(x) }
+func (x Inst) IsEmpty() bool   { panic("TODO") }
+func (x ID) IsEmpty() bool     { return uint64(x) == 0 }
 
 type Void struct{}
 
