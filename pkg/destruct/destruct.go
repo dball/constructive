@@ -9,52 +9,62 @@ import (
 	. "github.com/dball/constructive/pkg/types"
 )
 
+func ParseAttrTag(tag string) (attr Attr) {
+	parts := strings.Split(tag, ",")
+	attr.Ident = Ident(parts[0])
+	if len(parts) > 1 {
+		switch parts[1] {
+		case "identity":
+			attr.Unique = sys.AttrUniqueIdentity
+		case "unique":
+			attr.Unique = sys.AttrUniqueValue
+		}
+	}
+	return
+}
+
+func ParseAttrField(field reflect.StructField) (attr Attr) {
+	tag, ok := field.Tag.Lookup("attr")
+	if !ok {
+		return
+	}
+	attr = ParseAttrTag(tag)
+	if attr.Ident == sys.DbId {
+		return
+	}
+	switch field.Type.Kind() {
+	case reflect.Bool:
+		attr.Type = sys.AttrTypeBool
+	case reflect.Int:
+		attr.Type = sys.AttrTypeInt
+	case reflect.String:
+		attr.Type = sys.AttrTypeString
+	case reflect.Struct:
+		panic("TODO time")
+	default:
+		panic("TODO what even")
+	}
+	return
+}
+
 var symCount uint64
 
 func Schema(typ reflect.Type) []Claim {
 	n := typ.NumField()
 	claims := make([]Claim, 0, n)
 	for i := 0; i < n; i++ {
-		field := typ.Field(i)
-		attrTag, ok := field.Tag.Lookup("attr")
-		parts := strings.Split(attrTag, ",")
-		attrIdent := parts[0]
-		var attrUnique ID
-		if len(parts) > 1 {
-			switch parts[1] {
-			case "identity":
-				attrUnique = sys.AttrUniqueIdentity
-			case "unique":
-				attrUnique = sys.AttrUniqueValue
-			}
-		}
-		if !ok {
+		attr := ParseAttrField(typ.Field(i))
+		if attr.Ident == "" || attr.Ident == sys.DbId {
 			continue
-		}
-		if attrTag == sys.DbId {
-			continue
-		}
-		var attrType ID
-		switch field.Type.Kind() {
-		case reflect.Bool:
-			attrType = sys.AttrTypeBool
-		case reflect.Int:
-			attrType = sys.AttrTypeInt
-		case reflect.String:
-			attrType = sys.AttrTypeString
-		case reflect.Struct:
-			panic("TODO time")
-		default:
-			panic("TODO what even")
 		}
 		symCount++
 		e := TempID(fmt.Sprintf("%d", symCount))
 		claims = append(claims,
-			Claim{E: e, A: sys.DbIdent, V: String(attrIdent)},
-			Claim{E: e, A: sys.AttrType, V: attrType},
+			Claim{E: e, A: sys.DbIdent, V: String(attr.Ident)},
+			Claim{E: e, A: sys.AttrType, V: attr.Type},
 		)
-		if attrUnique > 0 {
-			claims = append(claims, Claim{E: e, A: sys.AttrUnique, V: attrUnique})
+		if attr.Unique > 0 {
+			claims = append(claims, Claim{E: e, A: sys.AttrUnique, V: attr.Unique})
 		}
 	}
 	return claims
@@ -98,12 +108,12 @@ func destruct(schema bool, xs []interface{}) []Claim {
 		xclaims := make([]Claim, 0, n)
 		for i := 0; i < n; i++ {
 			fieldType := typ.Field(i)
-			attr, ok := fieldType.Tag.Lookup("attr")
-			if !ok {
+			attr := ParseAttrField(fieldType)
+			if attr.Ident == "" {
 				continue
 			}
 			fieldValue := reflect.ValueOf(x).Field(i)
-			if attr == sys.DbId {
+			if attr.Ident == sys.DbId {
 				switch fieldType.Type.Kind() {
 				case reflect.Uint:
 					id = ID(fieldValue.Uint())
@@ -126,7 +136,7 @@ func destruct(schema bool, xs []interface{}) []Claim {
 				// TODO error?
 				continue
 			}
-			xclaims = append(xclaims, Claim{E: ID(0), A: Ident(attr), V: value})
+			xclaims = append(xclaims, Claim{E: ID(0), A: attr.Ident, V: value})
 		}
 		if id != ID(0) {
 			for i := range xclaims {

@@ -43,6 +43,7 @@ func Test_Destruct(t *testing.T) {
 		claims := DestructOnlyData(p)
 		expected := []Claim{
 			{E: ID(1), A: Ident("person/name"), V: String("Donald")},
+			{E: ID(1), A: Ident("person/uuid"), V: String("")},
 			{E: ID(1), A: Ident("person/age"), V: Int(46)},
 			{E: ID(1), A: Ident("person/active"), V: Bool(true)},
 		}
@@ -53,6 +54,7 @@ func Test_Destruct(t *testing.T) {
 		claims := DestructOnlyData(p)
 		expected := []Claim{
 			{E: TempID("1"), A: Ident("person/name"), V: String("Donald")},
+			{E: TempID("1"), A: Ident("person/uuid"), V: String("")},
 			{E: TempID("1"), A: Ident("person/age"), V: Int(46)},
 			{E: TempID("1"), A: Ident("person/active"), V: Bool(true)},
 		}
