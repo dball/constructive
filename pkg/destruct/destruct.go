@@ -3,6 +3,7 @@ package destruct
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/dball/constructive/pkg/sys"
 	. "github.com/dball/constructive/pkg/types"
@@ -15,11 +16,22 @@ func Schema(typ reflect.Type) []Claim {
 	claims := make([]Claim, 0, n)
 	for i := 0; i < n; i++ {
 		field := typ.Field(i)
-		attr, ok := field.Tag.Lookup("attr")
+		attrTag, ok := field.Tag.Lookup("attr")
+		parts := strings.Split(attrTag, ",")
+		attrIdent := parts[0]
+		var attrUnique ID
+		if len(parts) > 1 {
+			switch parts[1] {
+			case "identity":
+				attrUnique = sys.AttrUniqueIdentity
+			case "unique":
+				attrUnique = sys.AttrUniqueValue
+			}
+		}
 		if !ok {
 			continue
 		}
-		if attr == sys.DbId {
+		if attrTag == sys.DbId {
 			continue
 		}
 		var attrType ID
@@ -38,9 +50,12 @@ func Schema(typ reflect.Type) []Claim {
 		symCount++
 		e := TempID(fmt.Sprintf("%d", symCount))
 		claims = append(claims,
-			Claim{E: e, A: sys.DbIdent, V: String(attr)},
+			Claim{E: e, A: sys.DbIdent, V: String(attrIdent)},
 			Claim{E: e, A: sys.AttrType, V: attrType},
 		)
+		if attrUnique > 0 {
+			claims = append(claims, Claim{E: e, A: sys.AttrUnique, V: attrUnique})
+		}
 	}
 	return claims
 }

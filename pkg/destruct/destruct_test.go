@@ -11,7 +11,8 @@ import (
 
 type Person struct {
 	ID     uint   `attr:"sys/db/id"`
-	Name   string `attr:"person/name"`
+	Name   string `attr:"person/name,unique"`
+	UUID   string `attr:"person/uuid,identity"`
 	Age    int    `attr:"person/age"`
 	Active bool   `attr:"person/active"`
 }
@@ -23,10 +24,14 @@ func Test_Schema(t *testing.T) {
 	expected := []Claim{
 		{E: TempID("1"), A: sys.DbIdent, V: String("person/name")},
 		{E: TempID("1"), A: sys.AttrType, V: sys.AttrTypeString},
-		{E: TempID("2"), A: sys.DbIdent, V: String("person/age")},
-		{E: TempID("2"), A: sys.AttrType, V: sys.AttrTypeInt},
-		{E: TempID("3"), A: sys.DbIdent, V: String("person/active")},
-		{E: TempID("3"), A: sys.AttrType, V: sys.AttrTypeBool},
+		{E: TempID("1"), A: sys.AttrUnique, V: sys.AttrUniqueValue},
+		{E: TempID("2"), A: sys.DbIdent, V: String("person/uuid")},
+		{E: TempID("2"), A: sys.AttrType, V: sys.AttrTypeString},
+		{E: TempID("2"), A: sys.AttrUnique, V: sys.AttrUniqueIdentity},
+		{E: TempID("3"), A: sys.DbIdent, V: String("person/age")},
+		{E: TempID("3"), A: sys.AttrType, V: sys.AttrTypeInt},
+		{E: TempID("4"), A: sys.DbIdent, V: String("person/active")},
+		{E: TempID("4"), A: sys.AttrType, V: sys.AttrTypeBool},
 	}
 	assert.Equal(t, expected, claims)
 }
