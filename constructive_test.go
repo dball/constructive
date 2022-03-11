@@ -9,7 +9,7 @@ import (
 
 type Person struct {
 	ID     uint   `attr:"sys/db/id"`
-	Name   string `attr:"person/name"`
+	Name   string `attr:"person/name,identity"`
 	Age    int    `attr:"person/age"`
 	Active bool   `attr:"person/active"`
 }
@@ -19,7 +19,6 @@ type Named struct {
 }
 
 func TestEverything(t *testing.T) {
-	t.Skip("TODO")
 	conn := OpenConnection()
 	txn, err := conn.Write(Person{Name: "Donald", Age: 48})
 	require.NoError(t, err)

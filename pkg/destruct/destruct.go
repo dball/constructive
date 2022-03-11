@@ -78,8 +78,20 @@ func DestructOnlyData(xs ...interface{}) []Claim {
 	return destruct(false, xs)
 }
 
-func pluckFieldValue(structField reflect.StructField, refValue reflect.Value) Value {
-	panic("TODO")
+func pluckFieldValue(attr Attr, refValue reflect.Value) Value {
+	switch attr.Type {
+	case sys.AttrTypeString:
+		return String(refValue.String())
+	case sys.AttrTypeBool:
+		return Bool(refValue.Bool())
+	case sys.AttrTypeInt:
+		return Int(refValue.Int())
+	case sys.AttrTypeRef:
+		return ID(refValue.Uint())
+	case sys.AttrTypeInst:
+		panic("TODO inst")
+	}
+	panic("TODO whatttt")
 }
 
 func destruct(schema bool, xs []interface{}) []Claim {

@@ -68,5 +68,5 @@ func (db db) Query(exemplar interface{}, selections ...types.Selection) *iterato
 }
 
 func (db db) Fetch(ref interface{}) bool {
-	panic("TODO")
+	return destruct.Fetch(ref, db.database)
 }

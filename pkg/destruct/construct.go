@@ -18,8 +18,9 @@ type attrStruct struct {
 }
 
 func parseAttrFields(refType reflect.Type, db Database) (attrs attrStruct) {
-	attrs.idIndex = -1
 	n := refType.NumField()
+	attrs.idIndex = -1
+	attrs.fields = make(map[ID]attrField, n)
 	for i := 0; i < n; i++ {
 		ident := ParseAttrField(refType.Field(i)).Ident
 		switch ident {
@@ -63,8 +64,8 @@ func Construct2(ref interface{}, db Database, id ID) bool {
 }
 
 func Fetch(ref interface{}, db Database) bool {
-	refValue := reflect.ValueOf(ref)
-	refType := reflect.TypeOf(ref)
+	refValue := reflect.ValueOf(ref).Elem()
+	refType := refValue.Type()
 	attrs := parseAttrFields(refType, db)
 	var id ID
 	if attrs.idIndex >= 0 {
@@ -75,7 +76,7 @@ func Fetch(ref interface{}, db Database) bool {
 		if field.attr.Unique == 0 {
 			continue
 		}
-		value := pluckFieldValue(refType.Field(field.index), refValue.Field(field.index))
+		value := pluckFieldValue(field.attr, refValue.Field(field.index))
 		if value.IsEmpty() {
 			continue
 		}
@@ -91,7 +92,7 @@ func Fetch(ref interface{}, db Database) bool {
 		case ID(0):
 			return false
 		default:
-			panic("TODO")
+			panic("TODO LOOKUP")
 			//id = db.ResolveLookupRef(lookup)
 		}
 	default:

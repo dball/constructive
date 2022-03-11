@@ -52,7 +52,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 			attr.Type = v
 			idx.attrs[assertion.E] = attr
 		} else {
-			idx.attrs[assertion.E] = Attr{ID: assertion.E, Type: v}
+			idx.attrs[assertion.E] = Attr{ID: assertion.E, Type: v, Ident: Ident(idx.identNames[assertion.E])}
 		}
 	case sys.AttrUnique:
 		v := assertion.V.(ID)
@@ -69,7 +69,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 			attr.Unique = v
 			idx.attrs[assertion.E] = attr
 		} else {
-			idx.attrs[assertion.E] = Attr{ID: assertion.E, Unique: v}
+			idx.attrs[assertion.E] = Attr{ID: assertion.E, Unique: v, Ident: Ident(idx.identNames[assertion.E])}
 		}
 	case sys.AttrCardinality:
 		v := assertion.V.(ID)
@@ -86,7 +86,7 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 			attr.Cardinality = v
 			idx.attrs[assertion.E] = attr
 		} else {
-			idx.attrs[assertion.E] = Attr{ID: assertion.E, Cardinality: v}
+			idx.attrs[assertion.E] = Attr{ID: assertion.E, Cardinality: v, Ident: Ident(idx.identNames[assertion.E])}
 		}
 	case sys.DbIdent:
 		ident := assertion.V.(String)
