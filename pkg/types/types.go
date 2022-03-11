@@ -17,11 +17,13 @@ type Datum struct {
 type ID uint64
 
 type Attr struct {
-	ID          ID    `attr:"sys/db/id"`
-	Ident       Ident `attr:"sys/db/ident"`
-	Type        ID    `attr:"sys/attr/type"`
-	Cardinality ID    `attr:"sys/attr/cardinality"`
-	Unique      ID    `attr:"sys/db/unique"`
+	ID    ID    `attr:"sys/db/id"`
+	Ident Ident `attr:"sys/db/ident"`
+	// TODO might it be useful to have a type for an Ident referred to by
+	// an ID for unique attrs?
+	Type        ID `attr:"sys/attr/type"`
+	Cardinality ID `attr:"sys/attr/cardinality"`
+	Unique      ID `attr:"sys/db/unique"`
 }
 
 type Value interface {
