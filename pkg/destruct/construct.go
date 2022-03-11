@@ -39,12 +39,11 @@ func parseAttrFields(refType reflect.Type, db Database) (attrs attrStruct) {
 }
 
 func Construct2(ref interface{}, db Database, id ID) bool {
-	refValue := reflect.ValueOf(ref)
-	refType := reflect.TypeOf(ref)
-	mutable := refValue.Elem()
+	refValue := reflect.ValueOf(ref).Elem()
+	refType := refValue.Type()
 	attrs := parseAttrFields(refType, db)
 	if attrs.idIndex >= 0 {
-		mutable.Field(attrs.idIndex).SetUint(uint64(id))
+		refValue.Field(attrs.idIndex).SetUint(uint64(id))
 	}
 	found := false
 	iter := db.Select(Selection{E: id})
@@ -57,7 +56,13 @@ func Construct2(ref interface{}, db Database, id ID) bool {
 		}
 		switch attrField.attr.Type {
 		case sys.AttrTypeString:
-			mutable.Field(attrField.index).SetString(string(datum.V.(String)))
+			refValue.Field(attrField.index).SetString(string(datum.V.(String)))
+		case sys.AttrTypeInt:
+			refValue.Field(attrField.index).SetInt(int64(datum.V.(Int)))
+		case sys.AttrTypeBool:
+			refValue.Field(attrField.index).SetBool(bool(datum.V.(Bool)))
+		default:
+			panic("construct2 all the types")
 		}
 	}
 	return found

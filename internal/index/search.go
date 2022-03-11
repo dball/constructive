@@ -24,6 +24,7 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 	searchCount := 1
 	switch {
 	case c.E != nil:
+		// TODO we should prefer and use IndexAEV if we have both A and E and A is smaller
 		indexType = IndexEAV
 		searchCount *= c.E.Size()
 		if c.A != nil {
@@ -63,8 +64,29 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 		}
 		return searches
 	case c.A != nil:
-		// MARK and here we are
-		panic("TODO")
+		indexType = IndexAVE
+		searchCount *= c.A.Size()
+		searches := make([]rangeSearch, 0, searchCount)
+		as := c.A.Iterator()
+		for as.Next() {
+			a := as.Value().(ID)
+			switch c.V.(type) {
+			case VRange:
+				panic("TODO filter on value range")
+			case VSet:
+				panic("TODO range search on min and max with filter on set values")
+			default:
+				v := c.V.(Value)
+				search := rangeSearch{
+					indexType:  indexType,
+					start:      Datum{A: a, V: v},
+					ascending:  true,
+					terminator: func(d Datum) bool { return d.A > a || Compare(v, d.V) != 0 },
+				}
+				searches = append(searches, search)
+			}
+		}
+		return searches
 	default:
 		panic("TODO")
 	}
