@@ -63,6 +63,7 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 		}
 		return searches
 	case c.A != nil:
+		// MARK and here we are
 		panic("TODO")
 	default:
 		panic("TODO")
@@ -251,6 +252,8 @@ func (idx *BTreeIndex) resolveESel(sel ESel) ids.Constraint {
 			panic("TODO")
 		}
 		return r
+	case nil:
+		return nil
 	default:
 		panic("TODO nope")
 	}

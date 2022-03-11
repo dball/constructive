@@ -92,8 +92,7 @@ func Fetch(ref interface{}, db Database) bool {
 		case ID(0):
 			return false
 		default:
-			panic("TODO LOOKUP")
-			//id = db.ResolveLookupRef(lookup)
+			id = db.ResolveLookupRef(lookup)
 		}
 	default:
 		switch lookup.A {

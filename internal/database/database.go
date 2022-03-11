@@ -29,3 +29,7 @@ func (db *BTreeDatabase) ResolveEReadRef(eref EReadRef) (id ID) {
 func (db *BTreeDatabase) ResolveARef(aref ARef) (id ID) {
 	return db.idx.ResolveARef(aref)
 }
+
+func (db *BTreeDatabase) ResolveLookupRef(ref LookupRef) (id ID) {
+	return db.idx.ResolveLookupRef(ref)
+}

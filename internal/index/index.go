@@ -123,3 +123,11 @@ func (idx *BTreeIndex) ResolveARef(aref ARef) (id ID) {
 	}
 	return
 }
+
+func (idx *BTreeIndex) ResolveLookupRef(ref LookupRef) (id ID) {
+	a := idx.ResolveARef(ref.A)
+	if a == 0 {
+		return
+	}
+	return idx.SelectOne(Selection{A: a, V: VSelValue(ref.V)}).E
+}

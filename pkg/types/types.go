@@ -104,6 +104,7 @@ type Database interface {
 	AttrByIdent(ident Ident) Attr
 	ResolveEReadRef(eref EReadRef) ID
 	ResolveARef(aref ARef) ID
+	ResolveLookupRef(ref LookupRef) ID
 }
 
 type IndexType int
