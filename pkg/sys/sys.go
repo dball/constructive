@@ -55,11 +55,11 @@ var Datums []Datum = []Datum{
 
 // This could be computed from Datums but this is smaller than the reducer code
 var Attrs map[ID]Attr = map[ID]Attr{
-	DbIdent:         {Type: AttrTypeString, Unique: AttrUniqueIdentity},
-	AttrUnique:      {Type: AttrTypeRef},
-	AttrType:        {Type: AttrTypeRef},
-	AttrCardinality: {Type: AttrTypeRef},
-	TxAt:            {Type: AttrTypeInst},
+	DbIdent:         {ID: DbIdent, Type: AttrTypeString, Unique: AttrUniqueIdentity, Ident: Ident("sys/db/ident")},
+	AttrUnique:      {ID: AttrUnique, Type: AttrTypeRef, Ident: Ident("sys/attr/unique")},
+	AttrType:        {ID: AttrType, Type: AttrTypeRef, Ident: Ident("sys/attr/type")},
+	AttrCardinality: {ID: AttrCardinality, Type: AttrTypeRef, Ident: Ident("sys/attr/cardinality")},
+	TxAt:            {ID: TxAt, Type: AttrTypeInst, Ident: Ident("sys/tx/at")},
 }
 
 func ValidValue(typ ID, value Value) (ok bool) {

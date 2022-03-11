@@ -38,11 +38,14 @@ func TestEverything(t *testing.T) {
 	ok = db.Fetch(&missing)
 	require.False(t, ok)
 
-	t.Skip("failing, probably due to incorrect unique value check")
 	_, err = conn.Write(Person{Name: "Stephen", Age: 44})
 	require.NoError(t, err)
 	stephen := Person{Name: "Stephen"}
-	ok = db.Fetch(&stephen)
+	ok = conn.Read().Fetch(&stephen)
 	require.True(t, ok)
 	assert.Equal(t, 44, stephen.Age)
+
+	stephen.Age = 0
+	ok = db.Fetch(&stephen)
+	assert.False(t, ok)
 }
