@@ -41,9 +41,17 @@ type Float float64
 func (x String) IsEmpty() bool { return string(x) == "" }
 func (x Int) IsEmpty() bool    { return int64(x) == 0 }
 func (x Bool) IsEmpty() bool   { return !bool(x) }
-func (x Inst) IsEmpty() bool   { panic("TODO") }
+func (x Inst) IsEmpty() bool   { return time.Time(x).IsZero() }
 func (x ID) IsEmpty() bool     { return uint64(x) == 0 }
 func (x Float) IsEmpty() bool  { return float64(x) == 0 }
+
+func Instant(s string) Inst {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		panic(err)
+	}
+	return Inst(t)
+}
 
 type Void struct{}
 

@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 func typeCompare(v Value) int {
 	switch v.(type) {
 	case ID:
@@ -65,6 +67,21 @@ func Compare(v1 Value, v2 Value) int {
 		case x1 < x2:
 			return -1
 		case x1 > x2:
+			return 1
+		default:
+			return 0
+		}
+	case Inst:
+		x2, ok := v2.(Inst)
+		if !ok {
+			return typeCompare(x1) - typeCompare(x2)
+		}
+		t1 := time.Time(x1)
+		t2 := time.Time(x2)
+		switch {
+		case t1.Before(t2):
+			return -1
+		case t1.After(t2):
 			return 1
 		default:
 			return 0
