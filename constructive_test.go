@@ -51,3 +51,19 @@ func TestEverything(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, donald, donald2)
 }
+
+type Character struct {
+	Name  string `attr:"player/name,identity"`
+	Focus Skill  `attr:"player/focus"`
+}
+
+type Skill struct {
+	Name string  `attr:"skill/name"`
+	Rank float64 `attr:"skill/rank"`
+}
+
+func TestReferences(t *testing.T) {
+	conn := OpenConnection()
+	_, err := conn.Write(Skill{Name: "smith", Rank: 0.8})
+	require.NoError(t, err)
+}
