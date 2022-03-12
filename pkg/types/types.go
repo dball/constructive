@@ -189,9 +189,14 @@ func (Float) IsVSel()  {}
 func (VSet) IsVSel()   {}
 func (VRange) IsVSel() {}
 
+type Clock interface {
+	Now() time.Time
+}
+
 type Connection interface {
 	Read() Database
 	Write(request Request) (Transaction, error)
+	SetClock(clock Clock)
 }
 
 func ValueOf(x interface{}) (Value, error) {

@@ -13,6 +13,7 @@ func OpenConnection() Connection {
 	return &BTreeConnection{
 		idx:    idx,
 		nextID: sys.FirstUserID,
+		clock:  SystemClock,
 	}
 }
 
@@ -20,6 +21,13 @@ type BTreeConnection struct {
 	lock   sync.Mutex
 	idx    *index.BTreeIndex
 	nextID ID
+	clock  Clock
+}
+
+func (conn *BTreeConnection) SetClock(clock Clock) {
+	conn.lock.Lock()
+	defer conn.lock.Unlock()
+	conn.clock = clock
 }
 
 func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error) {
