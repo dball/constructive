@@ -35,6 +35,8 @@ A value is an observation, a claim, a fact, a reading. "Donald" is a value which
 
 A transaction is an entity that asserts a set of datums are true at a point in time. When I register an account, my name, credentials, etc. are collectively recorded in a transaction. The transaction necessarily records the time but may also include other audit details like the IP address of the host from which I created the account.
 
+--
+
 I contend this data model constitutes the simplest possible fundamental data model for general use. Simplifying by dropping the transaction component results in a system which has no general treatment of data attribution and is a huge problem for the industry.
 
 This is not a great data model for representing observations about things that lack durable identities or where time and attribution are not important features.

@@ -146,7 +146,17 @@ func destruct(schema bool, xs []interface{}) []Claim {
 			case reflect.String:
 				value = String(fieldValue.String())
 			case reflect.Struct:
-				// TODO time
+				v := fieldValue.Interface()
+				switch typed := v.(type) {
+				case time.Time:
+					value = Inst(typed)
+				default:
+					xxclaims := destruct(schema, []interface{}{typed})
+					if len(xxclaims) == 0 {
+						panic("TODO do we assign a tempid to the ref or what")
+					}
+					panic("TODO Claims value needs to accept tempid, maybe all of ewriteref")
+				}
 			case reflect.Float64:
 				value = Float(fieldValue.Float())
 			default:
@@ -164,7 +174,6 @@ func destruct(schema bool, xs []interface{}) []Claim {
 			}
 		} else {
 			symCount++
-			fmt.Println("assign symcount", symCount)
 			// TODO note we could use a different TempID type here and keep the whole string domain available to our callers
 			tempID := TempID(fmt.Sprintf("%d", symCount))
 			for i := range xclaims {
