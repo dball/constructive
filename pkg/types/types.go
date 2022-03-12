@@ -50,7 +50,7 @@ func Instant(s string) Inst {
 	if err != nil {
 		panic(err)
 	}
-	return Inst(t)
+	return Inst(t.UTC())
 }
 
 type Void struct{}
