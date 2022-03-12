@@ -3,7 +3,7 @@ package database
 import (
 	"time"
 
-	. "github.com/dball/constructive/pkg/types"
+	"github.com/dball/constructive/pkg/types"
 )
 
 type systemClock struct{}
@@ -12,7 +12,7 @@ func (systemClock) Now() time.Time {
 	return time.Now()
 }
 
-var SystemClock Clock = systemClock{}
+var SystemClock types.Clock = systemClock{}
 
 type fixedClock struct {
 	now time.Time
@@ -22,6 +22,6 @@ func (clock fixedClock) Now() time.Time {
 	return clock.now
 }
 
-func BuildFixedClock(now time.Time) fixedClock {
-	return fixedClock{now}
+func BuildFixedClock(now types.Inst) fixedClock {
+	return fixedClock{time.Time(now)}
 }

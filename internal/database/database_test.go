@@ -11,6 +11,8 @@ import (
 
 func TestConnection(t *testing.T) {
 	conn := OpenConnection()
+	inst := Instant("2020-03-11T12:00:00Z")
+	conn.SetClock(BuildFixedClock(inst))
 	txn, err := conn.Write(Request{
 		Claims: []Claim{
 			{E: TempID("name"), A: sys.DbIdent, V: String("person/name")},
@@ -33,6 +35,13 @@ func TestConnection(t *testing.T) {
 	db1 := txn.Database
 	assert.True(t, db1.Select(Selection{E: donald}).Next())
 	assert.False(t, db0.Select(Selection{E: donald}).Next())
+
+	txnDatums := db1.Select(Selection{E: txn.ID})
+	require.True(t, txnDatums.Next())
+	txnDatum, ok := txnDatums.Value().(Datum)
+	require.True(t, ok)
+	assert.Equal(t, Datum{E: txn.ID, A: sys.TxAt, V: inst, T: txn.ID}, txnDatum)
+	assert.False(t, txnDatums.Next())
 }
 
 func TestTempIDs(t *testing.T) {

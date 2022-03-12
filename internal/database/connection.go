@@ -48,14 +48,19 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 		}
 		_, err = newIdx.Assert(datum)
 		if err != nil {
-			conn.nextID = id
-			txn.ID = ID(0)
-			txn.NewIDs = nil
-			// TODO specify the failed claim
-			return
+			break
 		}
 	}
-	// TODO assert the system txn datums
+	if err == nil {
+		_, err = newIdx.Assert(Datum{E: txn.ID, A: sys.TxAt, V: Inst(conn.clock.Now()), T: txn.ID})
+	}
+	if err != nil {
+		conn.nextID = id
+		txn.ID = ID(0)
+		txn.NewIDs = nil
+		// TODO specify the failed claim
+		return
+	}
 	conn.idx = newIdx
 	txn.Database = conn.Read()
 	return
