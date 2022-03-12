@@ -7,6 +7,11 @@ import (
 	"github.com/google/btree"
 )
 
+// Asserts the given datum in the database. This returns the existing datum
+// with the same assertion or the datum retracted by this assertion, if any.
+// This returns an error if the assertion is not consistent with the database,
+// e.g. violates a unique constraint, has a value inconsistent with its
+// attribute, etc.
 func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 	if assertion.E == 0 {
 		err = ErrInvalidValue
@@ -41,8 +46,10 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 	switch assertion.A {
 	case sys.AttrType:
 		v := assertion.V.(ID)
-		// TODO validate attr type is a valid attr type
-		// TODO populate the Attr ident
+		if !sys.ValidAttrType(v) {
+			err = ErrInvalidAttrType
+			return
+		}
 		attr, ok := idx.attrs[assertion.E]
 		if ok {
 			if attr.Type != 0 && attr.Type != v {

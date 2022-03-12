@@ -38,7 +38,7 @@ func parseAttrFields(refType reflect.Type, db Database) (attrs attrStruct) {
 	return
 }
 
-func Construct2(ref interface{}, db Database, id ID) bool {
+func Construct(ref interface{}, db Database, id ID) bool {
 	refValue := reflect.ValueOf(ref).Elem()
 	refType := refValue.Type()
 	attrs := parseAttrFields(refType, db)
@@ -61,6 +61,8 @@ func Construct2(ref interface{}, db Database, id ID) bool {
 			refValue.Field(attrField.index).SetInt(int64(datum.V.(Int)))
 		case sys.AttrTypeBool:
 			refValue.Field(attrField.index).SetBool(bool(datum.V.(Bool)))
+		case sys.AttrTypeRef:
+			refValue.Field(attrField.index).SetUint(uint64(datum.V.(ID)))
 		default:
 			panic("construct2 all the types")
 		}
@@ -97,5 +99,5 @@ func Fetch(ref interface{}, db Database) bool {
 		}
 		return false
 	}
-	return Construct2(ref, db, id)
+	return Construct(ref, db, id)
 }

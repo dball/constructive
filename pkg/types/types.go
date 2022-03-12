@@ -220,3 +220,4 @@ var ErrInvalidAttrCardinality error = errors.New("attr cardinality must be one o
 var ErrAttrCardinalityChange error = errors.New("attr cardinality may not change")
 var ErrInvalidAttr error = errors.New("invalid datum attr")
 var ErrInvalidAttrUnique error = errors.New("attr uniqueness must be identity or value")
+var ErrInvalidAttrType error = errors.New("attr type must be valid")

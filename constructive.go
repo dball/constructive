@@ -64,7 +64,7 @@ type db struct {
 }
 
 func (db db) Query(exemplar interface{}, selections ...types.Selection) *iterator.Iterator {
-	panic("TODO")
+	panic("TODO actually do, but also: maybe this takes a slice of ref and selections that are structs with field tagged constraint values")
 }
 
 func (db db) Fetch(ref interface{}) bool {
