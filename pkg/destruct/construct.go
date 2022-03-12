@@ -106,3 +106,21 @@ func Fetch(ref interface{}, db Database) bool {
 	}
 	return Construct(ref, db, id)
 }
+
+func pluckFieldValue(attr Attr, refValue reflect.Value) Value {
+	switch attr.Type {
+	case sys.AttrTypeString:
+		return String(refValue.String())
+	case sys.AttrTypeBool:
+		return Bool(refValue.Bool())
+	case sys.AttrTypeInt:
+		return Int(refValue.Int())
+	case sys.AttrTypeRef:
+		return ID(refValue.Uint())
+	case sys.AttrTypeInst:
+		panic("TODO inst")
+	case sys.AttrTypeFloat:
+		return Float(refValue.Float())
+	}
+	panic("TODO whatttt")
+}

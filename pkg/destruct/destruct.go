@@ -48,10 +48,10 @@ func ParseAttrField(field reflect.StructField) (attr Attr) {
 		if timeType == field.Type {
 			attr.Type = sys.AttrTypeInst
 		} else {
-			panic("TODO struct ref")
+			attr.Type = sys.AttrTypeRef
 		}
 	default:
-		panic("TODO what even")
+		panic("Invalid attr field type")
 	}
 	return
 }
@@ -62,7 +62,8 @@ func Schema(typ reflect.Type) []Claim {
 	n := typ.NumField()
 	claims := make([]Claim, 0, n)
 	for i := 0; i < n; i++ {
-		attr := ParseAttrField(typ.Field(i))
+		field := typ.Field(i)
+		attr := ParseAttrField(field)
 		if attr.Ident == "" || attr.Ident == sys.DbId {
 			continue
 		}
@@ -75,6 +76,10 @@ func Schema(typ reflect.Type) []Claim {
 		if attr.Unique > 0 {
 			claims = append(claims, Claim{E: e, A: sys.AttrUnique, V: attr.Unique})
 		}
+		if attr.Type == sys.AttrTypeRef {
+			// TODO we need a types-that-have-been-schematized collection to prevent infinite cycles
+			claims = append(claims, Schema(field.Type)...)
+		}
 	}
 	return claims
 }
@@ -85,24 +90,6 @@ func Destruct(xs ...interface{}) []Claim {
 
 func DestructOnlyData(xs ...interface{}) []Claim {
 	return destruct(false, xs)
-}
-
-func pluckFieldValue(attr Attr, refValue reflect.Value) Value {
-	switch attr.Type {
-	case sys.AttrTypeString:
-		return String(refValue.String())
-	case sys.AttrTypeBool:
-		return Bool(refValue.Bool())
-	case sys.AttrTypeInt:
-		return Int(refValue.Int())
-	case sys.AttrTypeRef:
-		return ID(refValue.Uint())
-	case sys.AttrTypeInst:
-		panic("TODO inst")
-	case sys.AttrTypeFloat:
-		return Float(refValue.Float())
-	}
-	panic("TODO whatttt")
 }
 
 func destruct(schema bool, xs []interface{}) []Claim {

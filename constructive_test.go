@@ -82,7 +82,6 @@ func TestReferences(t *testing.T) {
 	_, err := conn.Write(Skill{Name: "smith", Rank: 0.8})
 	require.NoError(t, err)
 
-	t.Skip("add float attrs, ref destruct")
 	_, err = conn.Write(Character{Name: "Gerhard", Focus: Skill{Name: "smith", Rank: 0.99}})
 	require.NoError(t, err)
 }
