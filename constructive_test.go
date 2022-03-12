@@ -2,6 +2,7 @@ package constructive
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,6 +18,11 @@ type Person struct {
 type Named struct {
 	Name string `attr:"person/name,identity"`
 	Age  int    `attr:"person/age"`
+}
+
+type Txn struct {
+	ID uint      `attr:"sys/db/id"`
+	At time.Time `attr:"sys/tx/at"`
 }
 
 func TestEverything(t *testing.T) {
@@ -51,7 +57,9 @@ func TestEverything(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, donald, donald2)
 
-	// TODO test txn fetch
+	txnObject := Txn{}
+	txn.Fetch(&txnObject)
+	assert.Empty(t, txnObject.At)
 }
 
 type Character struct {

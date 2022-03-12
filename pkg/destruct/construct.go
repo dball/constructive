@@ -65,6 +65,8 @@ func Construct(ref interface{}, db Database, id ID) bool {
 			refValue.Field(attrField.index).SetUint(uint64(datum.V.(ID)))
 		case sys.AttrTypeFloat:
 			refValue.Field(attrField.index).SetFloat(float64(datum.V.(Float)))
+		case sys.AttrTypeInst:
+			panic("it is time, you see")
 		default:
 			panic("construct2 all the types")
 		}
