@@ -39,6 +39,8 @@ func ParseAttrField(field reflect.StructField) (attr Attr) {
 		attr.Type = sys.AttrTypeInt
 	case reflect.String:
 		attr.Type = sys.AttrTypeString
+	case reflect.Float64:
+		attr.Type = sys.AttrTypeFloat
 	case reflect.Struct:
 		panic("TODO time")
 	default:
@@ -90,6 +92,8 @@ func pluckFieldValue(attr Attr, refValue reflect.Value) Value {
 		return ID(refValue.Uint())
 	case sys.AttrTypeInst:
 		panic("TODO inst")
+	case sys.AttrTypeFloat:
+		return Float(refValue.Float())
 	}
 	panic("TODO whatttt")
 }
@@ -149,6 +153,8 @@ func destruct(schema bool, xs []interface{}) []Claim {
 				value = String(fieldValue.String())
 			case reflect.Struct:
 				// TODO time
+			case reflect.Float64:
+				value = Float(fieldValue.Float())
 			default:
 				// TODO error?
 				continue

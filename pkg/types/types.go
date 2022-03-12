@@ -31,15 +31,19 @@ type Value interface {
 }
 
 type String string
+
+// TODO should this be int64?
 type Int int
 type Bool bool
 type Inst time.Time
+type Float float64
 
 func (x String) IsEmpty() bool { return string(x) == "" }
 func (x Int) IsEmpty() bool    { return int64(x) == 0 }
 func (x Bool) IsEmpty() bool   { return !bool(x) }
 func (x Inst) IsEmpty() bool   { panic("TODO") }
 func (x ID) IsEmpty() bool     { return uint64(x) == 0 }
+func (x Float) IsEmpty() bool  { return float64(x) == 0 }
 
 type Void struct{}
 
@@ -173,6 +177,7 @@ func (String) IsVSel() {}
 func (Int) IsVSel()    {}
 func (Bool) IsVSel()   {}
 func (Inst) IsVSel()   {}
+func (Float) IsVSel()  {}
 func (VSet) IsVSel()   {}
 func (VRange) IsVSel() {}
 
@@ -185,12 +190,16 @@ func ValueOf(x interface{}) (Value, error) {
 	switch typed := x.(type) {
 	case string:
 		return String(typed), nil
-	case int:
+	case int64:
 		return Int(typed), nil
 	case bool:
 		return Bool(typed), nil
 	case time.Time:
 		return Inst(typed), nil
+	case uint64:
+		return ID(typed), nil
+	case float64:
+		return Float(typed), nil
 	default:
 		return nil, ErrInvalidValue
 	}

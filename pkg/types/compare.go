@@ -12,6 +12,8 @@ func typeCompare(v Value) int {
 		return 4
 	case Inst:
 		return 5
+	case Float:
+		return 6
 	default:
 		panic(ErrInvalidValue)
 	}
@@ -43,6 +45,19 @@ func Compare(v1 Value, v2 Value) int {
 		}
 	case Int:
 		x2, ok := v2.(Int)
+		if !ok {
+			return typeCompare(x1) - typeCompare(x2)
+		}
+		switch {
+		case x1 < x2:
+			return -1
+		case x1 > x2:
+			return 1
+		default:
+			return 0
+		}
+	case Float:
+		x2, ok := v2.(Float)
 		if !ok {
 			return typeCompare(x1) - typeCompare(x2)
 		}

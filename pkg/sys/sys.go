@@ -9,23 +9,23 @@ import (
 
 const (
 	DbId                = "sys/db/id"
-	Tx                  = ID(1)
-	TxAt                = ID(2)
-	DbIdent             = ID(3)
-	AttrUnique          = ID(4)
-	AttrUniqueIdentity  = ID(5)
-	AttrUniqueValue     = ID(6)
-	AttrType            = ID(7)
-	AttrTypeRef         = ID(8)
-	AttrTypeString      = ID(9)
-	AttrTypeInt         = ID(10)
-	AttrTypeBool        = ID(11)
-	AttrTypeInst        = ID(12)
-	AttrCardinality     = ID(13)
-	AttrCardinalityOne  = ID(14)
-	AttrCardinalityMany = ID(15)
-
-	FirstUserID = ID(0x100000)
+	DbIdent             = ID(1)
+	AttrType            = ID(2)
+	AttrUnique          = ID(3)
+	AttrCardinality     = ID(4)
+	Tx                  = ID(5)
+	TxAt                = ID(6)
+	AttrUniqueIdentity  = ID(7)
+	AttrUniqueValue     = ID(8)
+	AttrCardinalityOne  = ID(9)
+	AttrCardinalityMany = ID(10)
+	AttrTypeRef         = ID(11)
+	AttrTypeString      = ID(12)
+	AttrTypeInt         = ID(13)
+	AttrTypeBool        = ID(14)
+	AttrTypeInst        = ID(15)
+	AttrTypeFloat       = ID(16)
+	FirstUserID         = ID(0x100000)
 )
 
 var epoch time.Time
@@ -46,6 +46,7 @@ var Datums []Datum = []Datum{
 	{E: AttrTypeString, A: DbIdent, V: String("sys/attr/type/string"), T: Tx},
 	{E: AttrTypeInst, A: DbIdent, V: String("sys/attr/type/inst"), T: Tx},
 	{E: AttrTypeInt, A: DbIdent, V: String("sys/attr/type/int"), T: Tx},
+	{E: AttrTypeFloat, A: DbIdent, V: String("sys/attr/type/float"), T: Tx},
 	{E: AttrCardinality, A: DbIdent, V: String("sys/attr/cardinality"), T: Tx},
 	{E: AttrCardinality, A: AttrType, V: AttrTypeRef, T: Tx},
 	{E: AttrCardinalityOne, A: DbIdent, V: String("sys/attr/cardinality/one"), T: Tx},
@@ -74,6 +75,8 @@ func ValidValue(typ ID, value Value) (ok bool) {
 		_, ok = value.(Bool)
 	case AttrTypeInst:
 		_, ok = value.(Inst)
+	case AttrTypeFloat:
+		_, ok = value.(Float)
 	}
 	return
 }
@@ -95,6 +98,7 @@ func ValidAttrType(id ID) bool {
 	case AttrTypeInt:
 	case AttrTypeBool:
 	case AttrTypeInst:
+	case AttrTypeFloat:
 	default:
 		return false
 	}

@@ -311,6 +311,8 @@ func buildValueFilter(vsel VSel) ValueFilter {
 		return ValueFilter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
 	case Inst:
 		return ValueFilter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
+	case Float:
+		return ValueFilter{Pred: func(datum Datum) bool { return datum.V == typed }, Min: typed, Max: typed}
 	case VSet:
 		filters := make([]ValueFilter, 0, len(typed))
 		for v, _ := range typed {
@@ -401,11 +403,13 @@ func buildValueFilter(vsel VSel) ValueFilter {
 				return ok && id <= max
 			}}
 		case Int:
-			panic("TODO")
+			panic("TODO int")
+		case Float:
+			panic("TODO float")
 		case Inst:
-			panic("TODO")
+			panic("TODO inst")
 		case Bool:
-			panic("TODO")
+			panic("TODO bool")
 		default:
 			return matchesNoValue
 		}

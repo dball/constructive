@@ -63,6 +63,7 @@ type Skill struct {
 }
 
 func TestReferences(t *testing.T) {
+	//	t.Skip("add float attrs, ref destruct")
 	conn := OpenConnection()
 	_, err := conn.Write(Skill{Name: "smith", Rank: 0.8})
 	require.NoError(t, err)
