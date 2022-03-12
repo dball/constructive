@@ -50,12 +50,16 @@ func TestEverything(t *testing.T) {
 	ok = db.Fetch(&donald2)
 	require.True(t, ok)
 	assert.Equal(t, donald, donald2)
+
+	// TODO test txn fetch
 }
 
 type Character struct {
 	Name string `attr:"player/name,identity"`
 	// TODO component ref attr attr to indicate existence ownership
 	Focus Skill `attr:"player/focus"`
+	// TODO map of values for set cardinality
+	// TODO slice of values for list cardinality
 }
 
 type Skill struct {
@@ -68,7 +72,7 @@ func TestReferences(t *testing.T) {
 	_, err := conn.Write(Skill{Name: "smith", Rank: 0.8})
 	require.NoError(t, err)
 
-	//	t.Skip("add float attrs, ref destruct")
+	t.Skip("add float attrs, ref destruct")
 	_, err = conn.Write(Character{Name: "Gerhard", Focus: Skill{Name: "Smith", Rank: 0.99}})
 	require.NoError(t, err)
 }

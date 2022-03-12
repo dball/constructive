@@ -47,6 +47,13 @@ type Transaction struct {
 	Database Database
 }
 
+func (txn Transaction) Fetch(ref interface{}) {
+	ok := txn.Database.FetchByID(ref, txn.ID)
+	if !ok {
+		panic("Corruption: transaction not found in database")
+	}
+}
+
 // Database is a stable snapshot of data.
 type Database interface {
 	// Query returns an iterator of all records matching all of the selections, where the
@@ -57,6 +64,7 @@ type Database interface {
 	// one of these must have a non-empty value, otherwise this returns false. If a match
 	// is specified and found, the ref's struct's attr fields are set from the selected datums.
 	Fetch(ref interface{}) bool
+	FetchByID(ref interface{}, id types.ID) bool
 }
 
 type db struct {
@@ -69,4 +77,8 @@ func (db db) Query(exemplar interface{}, selections ...types.Selection) *iterato
 
 func (db db) Fetch(ref interface{}) bool {
 	return destruct.Fetch(ref, db.database)
+}
+
+func (db db) FetchByID(ref interface{}, id types.ID) bool {
+	return destruct.Construct(ref, db.database, id)
 }
