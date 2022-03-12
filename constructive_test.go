@@ -53,8 +53,9 @@ func TestEverything(t *testing.T) {
 }
 
 type Character struct {
-	Name  string `attr:"player/name,identity"`
-	Focus Skill  `attr:"player/focus"`
+	Name string `attr:"player/name,identity"`
+	// TODO component ref attr attr to indicate existence ownership
+	Focus Skill `attr:"player/focus"`
 }
 
 type Skill struct {
@@ -63,8 +64,11 @@ type Skill struct {
 }
 
 func TestReferences(t *testing.T) {
-	//	t.Skip("add float attrs, ref destruct")
 	conn := OpenConnection()
 	_, err := conn.Write(Skill{Name: "smith", Rank: 0.8})
+	require.NoError(t, err)
+
+	//	t.Skip("add float attrs, ref destruct")
+	_, err = conn.Write(Character{Name: "Gerhard", Focus: Skill{Name: "Smith", Rank: 0.99}})
 	require.NoError(t, err)
 }

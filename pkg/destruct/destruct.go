@@ -42,7 +42,7 @@ func ParseAttrField(field reflect.StructField) (attr Attr) {
 	case reflect.Float64:
 		attr.Type = sys.AttrTypeFloat
 	case reflect.Struct:
-		panic("TODO time")
+		panic("TODO time and ref")
 	default:
 		panic("TODO what even")
 	}
