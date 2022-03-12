@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/dball/constructive/pkg/sys"
 	. "github.com/dball/constructive/pkg/types"
@@ -22,6 +23,8 @@ func ParseAttrTag(tag string) (attr Attr) {
 	}
 	return
 }
+
+var timeType = reflect.TypeOf(time.Time{})
 
 func ParseAttrField(field reflect.StructField) (attr Attr) {
 	tag, ok := field.Tag.Lookup("attr")
@@ -42,7 +45,11 @@ func ParseAttrField(field reflect.StructField) (attr Attr) {
 	case reflect.Float64:
 		attr.Type = sys.AttrTypeFloat
 	case reflect.Struct:
-		panic("TODO time and ref")
+		if timeType == field.Type {
+			attr.Type = sys.AttrTypeInst
+		} else {
+			panic("TODO struct ref")
+		}
 	default:
 		panic("TODO what even")
 	}

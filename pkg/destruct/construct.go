@@ -2,6 +2,7 @@ package destruct
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/dball/constructive/pkg/sys"
 	. "github.com/dball/constructive/pkg/types"
@@ -66,7 +67,7 @@ func Construct(ref interface{}, db Database, id ID) bool {
 		case sys.AttrTypeFloat:
 			refValue.Field(attrField.index).SetFloat(float64(datum.V.(Float)))
 		case sys.AttrTypeInst:
-			panic("it is time, you see")
+			refValue.Field(attrField.index).Set(reflect.ValueOf(time.Time(datum.V.(Inst))))
 		default:
 			panic("construct2 all the types")
 		}

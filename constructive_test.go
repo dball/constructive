@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dball/constructive/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +60,8 @@ func TestEverything(t *testing.T) {
 
 	txnObject := Txn{}
 	txn.Fetch(&txnObject)
-	assert.Empty(t, txnObject.At)
+	assert.NotEmpty(t, txnObject.At)
+	assert.Equal(t, txn.ID, types.ID(txnObject.ID))
 }
 
 type Character struct {
