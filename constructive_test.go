@@ -28,6 +28,7 @@ func TestEverything(t *testing.T) {
 	ok := db.Fetch(&donald)
 	require.True(t, ok)
 	assert.Equal(t, 48, donald.Age)
+	assert.Positive(t, donald.ID)
 
 	named := Named{Name: "Donald"}
 	ok = db.Fetch(&named)
@@ -45,7 +46,8 @@ func TestEverything(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, 44, stephen.Age)
 
-	stephen.Age = 0
-	ok = db.Fetch(&stephen)
-	assert.False(t, ok)
+	donald2 := Person{ID: donald.ID}
+	ok = db.Fetch(&donald2)
+	require.True(t, ok)
+	assert.Equal(t, donald, donald2)
 }

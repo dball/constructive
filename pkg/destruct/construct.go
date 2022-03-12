@@ -76,7 +76,6 @@ func Fetch(ref interface{}, db Database) bool {
 	if attrs.idIndex >= 0 {
 		id = ID(refValue.Field(attrs.idIndex).Uint())
 	}
-	var lookup LookupRef
 	for _, field := range attrs.fields {
 		if field.attr.Unique == 0 {
 			continue
@@ -85,26 +84,18 @@ func Fetch(ref interface{}, db Database) bool {
 		if value.IsEmpty() {
 			continue
 		}
-		if lookup.A != nil {
-			return false
+		fieldID := db.ResolveLookupRef(LookupRef{A: field.attr.ID, V: value})
+		if fieldID == 0 {
+			continue
 		}
-		lookup.A = field.attr.ID
-		lookup.V = value
-	}
-	switch id {
-	case 0:
-		switch lookup.A {
-		case ID(0):
-			return false
-		default:
-			id = db.ResolveLookupRef(lookup)
+		if id == 0 {
+			id = fieldID
+			continue
 		}
-	default:
-		switch lookup.A {
-		case ID(0):
-		default:
-			return false
+		if fieldID == id {
+			continue
 		}
+		return false
 	}
 	return Construct2(ref, db, id)
 }
