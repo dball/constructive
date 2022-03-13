@@ -76,7 +76,7 @@ func TestTempIDs(t *testing.T) {
 		})
 		assert.Error(t, err)
 	})
-	t.Run("value uniqueness dioes not resolve to an extant entity", func(t *testing.T) {
+	t.Run("value uniqueness does not resolve to an extant entity", func(t *testing.T) {
 		conn := OpenConnection()
 		txn, err := conn.Write(Request{
 			Claims: []Claim{
@@ -107,5 +107,26 @@ func TestTempIDs(t *testing.T) {
 		})
 		assert.ErrorIs(t, err, ErrInvalidValue)
 	})
-
+	t.Run("temp id values also resolve", func(t *testing.T) {
+		conn := OpenConnection()
+		txn, err := conn.Write(Request{
+			Claims: []Claim{
+				{E: TempID("name"), A: sys.DbIdent, V: String("node/name")},
+				{E: TempID("name"), A: sys.AttrType, V: sys.AttrTypeString},
+				{E: TempID("link"), A: sys.DbIdent, V: String("node/link")},
+				{E: TempID("link"), A: sys.AttrType, V: sys.AttrTypeRef},
+			},
+		})
+		require.NoError(t, err)
+		name := txn.NewIDs[TempID("name")]
+		link := txn.NewIDs[TempID("link")]
+		txn, err = conn.Write(Request{
+			Claims: []Claim{
+				{E: TempID("head"), A: name, V: String("head")},
+				{E: TempID("head"), A: link, V: TempID("tail")},
+				{E: TempID("tail"), A: name, V: String("tail")},
+			},
+		})
+		require.NoError(t, err)
+	})
 }
