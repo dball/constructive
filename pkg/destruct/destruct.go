@@ -137,36 +137,44 @@ func destruct(schema bool, xs []interface{}) []Claim {
 				continue
 			}
 			// TODO parseFieldValue?
-			var value Value
+			var vref VRef
 			switch fieldType.Type.Kind() {
 			case reflect.Bool:
-				value = Bool(fieldValue.Bool())
+				vref = Bool(fieldValue.Bool())
 			case reflect.Int:
-				value = Int(fieldValue.Int())
+				vref = Int(fieldValue.Int())
 			case reflect.String:
-				value = String(fieldValue.String())
+				vref = String(fieldValue.String())
 			case reflect.Struct:
 				v := fieldValue.Interface()
 				switch typed := v.(type) {
 				case time.Time:
-					value = Inst(typed)
+					vref = Inst(typed)
 				default:
 					xxclaims := destruct(schema, []interface{}{typed})
 					if len(xxclaims) == 0 {
 						panic("TODO do we assign a tempid to the ref or what")
 					}
-					panic("TODO Claims value needs to accept tempid, maybe all of ewriteref")
+					switch ee := xclaims[0].E.(type) {
+					case ID:
+						vref = ee
+					case TempID:
+						vref = ee
+					default:
+						panic("TODO struct ref has an unexpected e type")
+					}
 				}
 			case reflect.Float64:
-				value = Float(fieldValue.Float())
+				vref = Float(fieldValue.Float())
 			default:
 				// TODO error?
 				continue
 			}
-			if attr.Unique != 0 && value.IsEmpty() {
+			v, ok := vref.(Value)
+			if ok && attr.Unique != 0 && v.IsEmpty() {
 				continue
 			}
-			xclaims = append(xclaims, Claim{E: ID(0), A: attr.Ident, V: value})
+			xclaims = append(xclaims, Claim{E: ID(0), A: attr.Ident, V: vref})
 		}
 		if id != ID(0) {
 			for i := range xclaims {

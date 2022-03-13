@@ -37,18 +37,33 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 	newIdx := conn.idx.Clone()
 	id := conn.nextID
 	txn.ID = conn.allocID()
+	// TODO is a two-pass claim resolver correct, or are there cases where cycles
+	// of tempids occur that have to be satisfied either analytically or iteratively?
 	for _, claim := range request.Claims {
-		a := conn.resolveARef(claim.A)
-		v := claim.V
-		e := conn.resolveEWriteRef(txn, a, v, claim.E)
-		datum := Datum{
-			E: e,
-			A: a,
-			V: claim.V,
+		v, ok := claim.V.(Value)
+		if !ok {
+			continue
 		}
-		_, err = newIdx.Assert(datum)
+		a := conn.resolveARef(claim.A)
+		e := conn.resolveEWriteRef(txn, a, v, claim.E)
+		_, err = newIdx.Assert(Datum{E: e, A: a, V: v})
 		if err != nil {
 			break
+		}
+	}
+	if err != nil {
+		for _, claim := range request.Claims {
+			tempID, ok := claim.V.(TempID)
+			if !ok {
+				continue
+			}
+			v, ok := txn.NewIDs[tempID]
+			if !ok {
+				panic("claims with tempid values not used as entities in the request are invalid")
+			}
+			a := conn.resolveARef(claim.A)
+			e := conn.resolveEWriteRef(txn, a, v, claim.E)
+			_, err = newIdx.Assert(Datum{E: e, A: a, V: v})
 		}
 	}
 	if err == nil {

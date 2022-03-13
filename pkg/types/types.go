@@ -73,7 +73,7 @@ type Ident string
 type Claim struct {
 	E EWriteRef
 	A ARef
-	V Value
+	V VRef
 }
 
 type EReadRef interface {
@@ -101,6 +101,18 @@ type ARef interface {
 func (ID) IsARef()        {}
 func (LookupRef) IsARef() {}
 func (Ident) IsARef()     {}
+
+type VRef interface {
+	IsVRef()
+}
+
+func (ID) IsVRef()     {}
+func (String) IsVRef() {}
+func (Int) IsVRef()    {}
+func (Bool) IsVRef()   {}
+func (Inst) IsVRef()   {}
+func (Float) IsVRef()  {}
+func (TempID) IsVRef() {}
 
 type Transaction struct {
 	ID       ID
