@@ -112,6 +112,13 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 	return
 }
 
+func (idx *BTreeIndex) Retract(assertion Datum) (err error) {
+	// TODO we're not validating anything at this point, but it's easy to imagine wanting
+	// to diagnose illogical retractions, so we'll return error to get the type right.
+	idx.retract(assertion)
+	return
+}
+
 // assertCardinalityOne ensures a datum for an attribute of cardinality one exists in the index.
 // If no datum for the entity and attribute already existed, this inserts one and returns
 // an empty datum. If one already exists with the same value, this returns that datum and
@@ -191,4 +198,16 @@ func (idx *BTreeIndex) assertCardinalityMany(d Datum) (d0 Datum, changed bool) {
 	node.kind = IndexAVE
 	idx.tree.ReplaceOrInsert(node)
 	return Datum{}, true
+}
+
+func (idx *BTreeIndex) retract(d Datum) (changed bool) {
+	item := idx.tree.Delete(Node{kind: IndexEAV, datum: d})
+	if item == nil {
+		return
+	}
+	changed = true
+	idx.tree.Delete(Node{kind: IndexAEV, datum: d})
+	// TODO can skip if a is unique
+	idx.tree.Delete(Node{kind: IndexAVE, datum: d})
+	return
 }
