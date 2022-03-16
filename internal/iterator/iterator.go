@@ -52,6 +52,7 @@ func (iters Iterators) Each(accept Accept) {
 	for _, iterator := range iters {
 		for iterator.Next() {
 			if !accept(iterator.Value()) {
+				// TODO close the remaining iterators, yeah?
 				return
 			}
 		}
