@@ -78,6 +78,8 @@ func TestEverything(t *testing.T) {
 	donald = Person{Name: "Donald"}
 	ok = txn.Database.Fetch(&donald)
 	assert.False(t, ok)
+	// TODO either fix or demonstrate that Donald's age datum is just hanging out forever, which is bad.
+	// but should erasing a record retract all datums for the entity or just those with attributes in the record fields?
 }
 
 type Character struct {
