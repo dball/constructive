@@ -37,8 +37,9 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 	newIdx := conn.idx.Clone()
 	id := conn.nextID
 	txn.ID = conn.allocID()
-	// TODO is a two-pass claim resolver correct, or are there cases where cycles
-	// of tempids occur that have to be satisfied either analytically or iteratively?
+	// TODO since we want to apply claim sequentially, instead of these two passes, we should
+	// resolve tempids first, probably with an unbounded iteration, then apply all claims.
+	// TODO we should also error on retractions with tempids. That's nonsense.
 	for _, claim := range request.Claims {
 		v, ok := claim.V.(Value)
 		if !ok {
@@ -46,7 +47,11 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 		}
 		a := conn.resolveARef(claim.A)
 		e := conn.resolveEWriteRef(txn, a, v, claim.E)
-		_, err = newIdx.Assert(Datum{E: e, A: a, V: v})
+		if claim.Retract {
+			err = newIdx.Retract(Datum{E: e, A: a, V: v})
+		} else {
+			_, err = newIdx.Assert(Datum{E: e, A: a, V: v})
+		}
 		if err != nil {
 			break
 		}
