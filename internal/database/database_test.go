@@ -42,6 +42,14 @@ func TestConnection(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, Datum{E: txn.ID, A: sys.TxAt, V: inst, T: txn.ID}, txnDatum)
 	assert.False(t, txnDatums.Next())
+
+	txn, err = conn.Write(Request{
+		Claims: []Claim{
+			{E: LookupRef{A: Ident("person/name"), V: String("Donald")}, A: Ident("person/name"), V: String("Donald"), Retract: true},
+		},
+	})
+	require.NoError(t, err)
+	assert.False(t, txn.Database.Select(Selection{E: donald}).Next())
 }
 
 func TestTempIDs(t *testing.T) {

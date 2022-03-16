@@ -99,7 +99,7 @@ func (conn *BTreeConnection) resolveEWriteRef(txn Transaction, a ID, v Value, er
 	case ID:
 		return e
 	case LookupRef:
-		panic("TODO")
+		return conn.idx.ResolveLookupRef(e)
 	case TempID:
 		id, ok := txn.NewIDs[e]
 		if ok {
