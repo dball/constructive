@@ -39,13 +39,15 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 	txn.ID = conn.allocID()
 	// TODO since we want to apply claim sequentially, instead of these two passes, we should
 	// resolve tempids first, probably with an unbounded iteration, then apply all claims.
-	// TODO we should also error on retractions with tempids. That's nonsense.
 	for _, claim := range request.Claims {
 		v, ok := claim.V.(Value)
 		if !ok {
 			continue
 		}
 		a := conn.resolveARef(claim.A)
+		// TODO if we have multiple claims for the same tempid, and the first one
+		// is not for a unique identity attr, we must not allocate a new id until
+		// we have checked the other claims for the same tempid.
 		e := conn.resolveEWriteRef(txn, a, v, claim.E)
 		if claim.Retract {
 			err = newIdx.Retract(Datum{E: e, A: a, V: v})

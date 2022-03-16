@@ -9,10 +9,11 @@ import (
 
 // Connection is a writable constructive database.
 type Connection interface {
-	// Write records the given records and returns the successful transaction
-	// or error.
+	// Write atomically records the given records and returns the transaction.
 	Write(records ...interface{}) (Transaction, error)
-	// Read returns a stable snapshot of the database.
+	// Erase atomically erases the given records and returns the transaction.
+	Erase(records ...interface{}) (Transaction, error)
+	// Read returns a snapshot of the database.
 	Read() Database
 }
 
@@ -22,6 +23,19 @@ type connection struct {
 
 func (conn connection) Write(records ...interface{}) (Transaction, error) {
 	claims := destruct.Destruct(records...)
+	txn, err := conn.connection.Write(types.Request{Claims: claims})
+	if err != nil {
+		return Transaction{}, err
+	}
+	return Transaction{ID: txn.ID, NewIDs: txn.NewIDs, Database: db{txn.Database}}, nil
+}
+
+func (conn connection) Erase(records ...interface{}) (Transaction, error) {
+	claims := destruct.DestructOnlyData(records...)
+	for i, claim := range claims {
+		claim.Retract = true
+		claims[i] = claim
+	}
 	txn, err := conn.connection.Write(types.Request{Claims: claims})
 	if err != nil {
 		return Transaction{}, err

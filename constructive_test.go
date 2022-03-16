@@ -28,24 +28,31 @@ type Txn struct {
 
 func TestEverything(t *testing.T) {
 	conn := OpenConnection()
+
+	// records the attribute fields of the record as datums
 	txn, err := conn.Write(Person{Name: "Donald", Age: 48})
 	require.NoError(t, err)
 	db := txn.Database
+
+	// populates the attribute fields of a record identified by a unique attr
 	donald := Person{Name: "Donald"}
 	ok := db.Fetch(&donald)
 	require.True(t, ok)
 	assert.Equal(t, 48, donald.Age)
 	assert.Positive(t, donald.ID)
 
+	// populates the attribute fields of a different type of struct
 	named := Named{Name: "Donald"}
 	ok = db.Fetch(&named)
 	assert.Equal(t, 48, named.Age)
 	require.True(t, ok)
 
+	// fails for a record without the referenced, identified entity
 	missing := Person{Name: "Leah"}
 	ok = db.Fetch(&missing)
 	require.False(t, ok)
 
+	// accepts another record
 	_, err = conn.Write(Person{Name: "Stephen", Age: 44})
 	require.NoError(t, err)
 	stephen := Person{Name: "Stephen"}
@@ -53,15 +60,24 @@ func TestEverything(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, 44, stephen.Age)
 
+	// populates a record identified by id
 	donald2 := Person{ID: donald.ID}
 	ok = db.Fetch(&donald2)
 	require.True(t, ok)
 	assert.Equal(t, donald, donald2)
 
+	// transaction can fetch its attributes
 	txnObject := Txn{}
 	txn.Fetch(&txnObject)
 	assert.NotEmpty(t, txnObject.At)
 	assert.Equal(t, txn.ID, types.ID(txnObject.ID))
+
+	// erase removes a record
+	txn, err = conn.Erase(Person{Name: "Donald"})
+	require.NoError(t, err)
+	donald = Person{Name: "Donald"}
+	ok = txn.Database.Fetch(&donald)
+	assert.False(t, ok)
 }
 
 type Character struct {
