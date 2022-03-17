@@ -179,6 +179,7 @@ type Database interface {
 	ResolveEReadRef(eref EReadRef) ID
 	ResolveARef(aref ARef) ID
 	ResolveLookupRef(ref LookupRef) ID
+	Dump() interface{}
 }
 
 // IndexType is the type of index being used to store or query datums.

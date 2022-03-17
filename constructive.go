@@ -79,6 +79,7 @@ type Database interface {
 	// is specified and found, the ref's struct's attr fields are set from the selected datums.
 	Fetch(ref interface{}) bool
 	FetchByID(ref interface{}, id types.ID) bool
+	Dump() interface{}
 }
 
 type db struct {
@@ -95,4 +96,8 @@ func (db db) Fetch(ref interface{}) bool {
 
 func (db db) FetchByID(ref interface{}, id types.ID) bool {
 	return destruct.Construct(ref, db.database, id)
+}
+
+func (db db) Dump() interface{} {
+	return db.database.Dump()
 }

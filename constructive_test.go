@@ -72,6 +72,9 @@ func TestEverything(t *testing.T) {
 	assert.NotEmpty(t, txnObject.At)
 	assert.Equal(t, txn.ID, types.ID(txnObject.ID))
 
+	dump := txn.Database.Dump()
+	assert.NotEmpty(t, dump)
+
 	// erase removes a record
 	txn, err = conn.Erase(Person{Name: "Donald"})
 	require.NoError(t, err)
