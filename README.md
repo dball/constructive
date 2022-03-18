@@ -15,6 +15,15 @@ Constructive is an experiment in indexed data storage in Golang, specifically fo
 * I care most about correct behavior, then API usability and stability, then performance, then memory efficiency.
 * I do not care about being able to go back in history at this time. The data model readily supports it, but it would require a more sophisticated index to be practical.
 
+## Acknowledgements
+
+This library is an implementation of many of the ideas and features of the Datomic databases, albeit with no durability beyond the process runtime and no transaction history. In this respect, it is significantly also inspired by the Datascript library.
+
+* [Datomic](https://www.datomic.com/)
+* [Datascript](https://github.com/tonsky/datascript)
+
+Constructive uses slightly different system idents than either, preferring a path hierachy.
+
 ## Theory
 
 The datum model is an extension of the RDF model. There are four components to a datum:
@@ -48,7 +57,9 @@ Attributes are entities that have at least two system attributes, ident and type
 
 ### sys/db/ident
 
-An system ident uniquely identifies a datum by name, e.g. `person/name` or, indeed, `sys/db/ident`. Attributes are almost always referred to by their idents. Not all idents are attributes, only those with types. Idents are the idiomatic way to represent enumerations.
+An system ident uniquely identifies a datum by name, e.g. `person/name` or, indeed, `sys/db/ident`. Attributes are almost always referred to by their idents. Not all idents are attributes, only those with types. Idents are also the idiomatic way to represent enumerations, and have many uses beyond. The system reserves the `sys`
+root, rejecting claims for such idents or about the entities to which they may refer. Users may use the remainder of the space as they see fit, though they're
+recommended to use paths for consistency.
 
 ### sys/attr/type
 
