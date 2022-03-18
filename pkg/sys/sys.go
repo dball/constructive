@@ -46,6 +46,7 @@ var Datums []Datum = []Datum{
 	{E: AttrTypeString, A: DbIdent, V: String("sys/attr/type/string"), T: Tx},
 	{E: AttrTypeInst, A: DbIdent, V: String("sys/attr/type/inst"), T: Tx},
 	{E: AttrTypeInt, A: DbIdent, V: String("sys/attr/type/int"), T: Tx},
+	{E: AttrTypeBool, A: DbIdent, V: String("sys/attr/type/bool"), T: Tx},
 	{E: AttrTypeFloat, A: DbIdent, V: String("sys/attr/type/float"), T: Tx},
 	{E: AttrCardinality, A: DbIdent, V: String("sys/attr/cardinality"), T: Tx},
 	{E: AttrCardinality, A: AttrType, V: AttrTypeRef, T: Tx},
