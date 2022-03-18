@@ -1,6 +1,7 @@
 package constructive
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -73,16 +74,23 @@ func TestEverything(t *testing.T) {
 	assert.Equal(t, txn.ID, types.ID(txnObject.ID))
 
 	dump := txn.Database.Dump()
-	assert.NotEmpty(t, dump)
+	bytes, err := json.MarshalIndent(dump, "", "  ")
+	t.Log(bytes)
+	assert.NoError(t, err)
 
 	// erase removes a record
 	txn, err = conn.Erase(Person{Name: "Donald"})
 	require.NoError(t, err)
-	donald = Person{Name: "Donald"}
-	ok = txn.Database.Fetch(&donald)
+	p := Person{Name: "Donald"}
+	ok = txn.Database.Fetch(&p)
 	assert.False(t, ok)
-	// TODO either fix or demonstrate that Donald's age datum is just hanging out forever, which is bad.
-	// but should erasing a record retract all datums for the entity or just those with attributes in the record fields?
+
+	// TODO this exposes a bug or bad feature of erase, depending on perspective
+	p = Person{ID: donald.ID}
+	ok = txn.Database.Fetch(&p)
+	assert.True(t, ok)
+	assert.Equal(t, 48, p.Age)
+	assert.Empty(t, p.Name)
 }
 
 type Character struct {

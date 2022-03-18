@@ -90,7 +90,11 @@ func buildRangeSearches(c Constraints) []rangeSearch {
 	case c.V != nil:
 		panic("TODO range search on v would require a vae index")
 	default:
-		panic("TODO what does a range search with no constraints look like - eav index walk should be the result")
+		search := rangeSearch{
+			indexType: IndexEAV,
+			ascending: true,
+		}
+		return []rangeSearch{search}
 	}
 }
 
