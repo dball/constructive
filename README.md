@@ -92,6 +92,32 @@ This specifies that the attribute's value is unique in the database, only one en
 
 Both enforce the uniqueness constraint. The only difference is that when asserting claims, if a tempid is used in a claim for this attribute, and an entity already asserts the claimed value, the tempid will resolve to the extant entity for identity uniqueness. By contrast, a value uniqueness attribute will cause the claim to be rejected.
 
+----
+
+THESE ARE LIES this is aspirational, an experiment in documentation-driven development.
+
+### sys/attr/ref/type
+
+This qualifies the type of reference. It's only value is:
+
+* `sys/attr/ref/type/component`
+
+This specifies that the reference is to a component. A component entity is one whose existence is governed by a parent. A component ref attribute changes the
+behavior of the system when applying transactions in the following ways:
+
+If a claim to a tempid that resolves via identity uniqueness is about a scalar component ref, and the claimed value is a tempid, and the existing entity has a value
+for the component ref, the value's tempid will resolve to the existing component.
+
+### sys/attr/ref/type/component/key
+
+If a similar claim is about a set component ref, this attribute governs the transaction behavior.
+
+If this is not present, all datums about the existing components are retracted before considering the claims. This results in unnecessary writes if used liberally.
+It is recommended that the component key be given, identifying the attribute whose value on the components is unique. If the key is present, all existing components
+that lack a claim to their identity are fully retracted. 
+
+----
+
 ## Structs
 
 The primary use interface for constructive is intended to be structs, the dominant data structure in Golang.
