@@ -98,7 +98,7 @@ THESE ARE LIES this is aspirational, an experiment in documentation-driven devel
 
 ### sys/attr/ref/type
 
-This qualifies the type of reference. It's only value is:
+This qualifies the type of reference. Its only value is:
 
 * `sys/attr/ref/type/component`
 
