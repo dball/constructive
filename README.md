@@ -125,3 +125,44 @@ that lack a claim to their identity are fully retracted.
 ## Structs
 
 The primary use interface for constructive is intended to be structs, the dominant data structure in Golang.
+
+Structs may represent claims, entities, or queries. They declare their role in the constructive database with
+field tags, for example:
+
+```go
+type Person struct {
+  ID ID `"attr:sys/db/id"`
+  Name string `"attr:person/name,identity"`
+  Age int `"attr:person/age"`
+}
+```
+
+Such structs can be given to the database to record as datums. The database first asserts the schema required
+by the struct tags, then the values in the fields.
+
+All such datums are assigned tempids in the claims. If an identity attribute field value exists, it will resolve
+to any existing referent entity. Similarly, a `sys/db/id` pseudo-attribute field is taken to contain the entity id.
+If any such references exist, they must all resolve to the same referent or the claims are rejected.
+
+Such structs can be populated by the database in two ways.
+
+Individual entities can be fetched by passing a reference to a struct with identity values as above. If such an
+entity exists, the attribute fields are populated from their values in the database.
+
+---- THESE ARE LIES
+
+Queries may be expressed on structs similarly;
+
+```go
+type PersonQuery struct {
+  Names []string `"attr:person/name"`
+  Type *Person `"attr:sys/struct/type"`
+  Queries []PersonQuery `"attr:sys/struct/query"`
+}
+```
+
+Fields that refer to user attributes constrain the values allowed in the results. The
+`sys/struct/type` attribute must contain a reference to the entity struct type to
+instantiate and populate with the matching entity's values. The `sys/struct/query` may
+be used on a field that contains a slice of query structs, often but not necessarily
+of the root type. Such queries are combined between ane above by unions.
