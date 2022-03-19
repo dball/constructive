@@ -108,7 +108,7 @@ behavior of the system when applying transactions in the following ways:
 If a claim to a tempid that resolves via identity uniqueness is about a scalar component ref, and the claimed value is a tempid, and the existing entity has a value
 for the component ref, the value's tempid will resolve to the existing component.
 
-If a claim retract a datum for a component ref, all datums about the referent entity are retracted.
+If a claim retracts a datum for a component ref, all datums about the referent entity are retracted.
 
 Component refs may not form cycles. A claim for a component ref that would complete a cycle is rejected.
 

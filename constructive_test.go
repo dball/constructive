@@ -1,7 +1,6 @@
 package constructive
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -73,11 +72,6 @@ func TestEverything(t *testing.T) {
 	assert.NotEmpty(t, txnObject.At)
 	assert.Equal(t, txn.ID, types.ID(txnObject.ID))
 
-	dump := txn.Database.Dump()
-	bytes, err := json.MarshalIndent(dump, "", "  ")
-	t.Log(bytes)
-	assert.NoError(t, err)
-
 	// erase removes a record
 	txn, err = conn.Erase(Person{Name: "Donald"})
 	require.NoError(t, err)
@@ -85,12 +79,10 @@ func TestEverything(t *testing.T) {
 	ok = txn.Database.Fetch(&p)
 	assert.False(t, ok)
 
-	// TODO this exposes a bug or bad feature of erase, depending on perspective
+	// no field attributes are left behind
 	p = Person{ID: donald.ID}
 	ok = txn.Database.Fetch(&p)
-	assert.True(t, ok)
-	assert.Equal(t, 48, p.Age)
-	assert.Empty(t, p.Name)
+	assert.False(t, ok)
 }
 
 type Character struct {

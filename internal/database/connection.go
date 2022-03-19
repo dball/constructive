@@ -30,6 +30,20 @@ func (conn *BTreeConnection) SetClock(clock Clock) {
 	conn.clock = clock
 }
 
+// Write attempts to update the state of the connection to reflect the claims in the
+// request. Claims assert or retract datums, though unlike datums, they may refer
+// to values via Idents, LookupRefs, etc. Failure to resolve such references will
+// result in rejected claims, as will claims about invalid attributes, values
+// inconsistent with attribute types, etc. Empty values are not allowed in claims
+// except for retractions, which specifically interpret a nil Value to retract
+// all datums for that entity and attribute.
+//
+// Claims may specify entity and ref values as tempids. All claims about an tempid
+// will resolve to an existing entity id if there is an identity unique attribute
+// in the claims that corresponds to it. Otherwise, each distinct tempid is allocated
+// a new id.
+//
+// Either all claims in a request are accepted, or all are rejected.
 func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error) {
 	txn.NewIDs = make(map[TempID]ID)
 	conn.lock.Lock()
@@ -50,7 +64,17 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 		// we have checked the other claims for the same tempid.
 		e := conn.resolveEWriteRef(txn, a, v, claim.E)
 		if claim.Retract {
-			err = newIdx.Retract(Datum{E: e, A: a, V: v})
+			if v != nil {
+				err = newIdx.Retract(Datum{E: e, A: a, V: v})
+			} else {
+				iter := conn.idx.Select(Selection{E: e, A: a})
+				for iter.Next() {
+					err = newIdx.Retract(iter.Value().(Datum))
+					if err != nil {
+						break
+					}
+				}
+			}
 		} else {
 			_, err = newIdx.Assert(Datum{E: e, A: a, V: v})
 		}
