@@ -17,11 +17,13 @@ func TestConnection(t *testing.T) {
 		Claims: []Claim{
 			{E: TempID("name"), A: sys.DbIdent, V: String("person/name")},
 			{E: TempID("name"), A: sys.AttrType, V: sys.AttrTypeString},
+			{E: TempID("name"), A: sys.AttrUnique, V: sys.AttrUniqueIdentity},
 		}},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, map[TempID]ID{TempID("name"): sys.FirstUserID + 1}, txn.NewIDs)
+	assert.NotEmpty(t, txn.NewIDs["name"])
 	db0 := txn.Database
+	t.Log("db0", db0.Dump())
 	name := txn.NewIDs[TempID("name")]
 	txn, err = conn.Write(Request{
 		Claims: []Claim{
@@ -137,4 +139,34 @@ func TestTempIDs(t *testing.T) {
 		})
 		require.NoError(t, err)
 	})
+}
+
+func TestRetract(t *testing.T) {
+	conn := OpenConnection()
+	_, err := conn.Write(Request{
+		Claims: []Claim{
+			{E: TempID("name"), A: sys.DbIdent, V: String("person/name")},
+			{E: TempID("name"), A: sys.AttrType, V: sys.AttrTypeString},
+			{E: TempID("name"), A: sys.AttrUnique, V: sys.AttrUniqueIdentity},
+			{E: TempID("age"), A: sys.DbIdent, V: String("person/age")},
+			{E: TempID("age"), A: sys.AttrType, V: sys.AttrTypeInt},
+		}},
+	)
+	require.NoError(t, err)
+	txn, err := conn.Write(Request{
+		Claims: []Claim{
+			{E: TempID("me"), A: Ident("person/name"), V: String("Donald")},
+			{E: TempID("me"), A: Ident("person/age"), V: Int(7)},
+		},
+	})
+	require.NoError(t, err)
+	donald := txn.NewIDs[TempID("me")]
+	txn, err = conn.Write(Request{
+		Claims: []Claim{
+			{E: donald, A: Ident("person/name"), Retract: true},
+			{E: donald, A: Ident("person/age"), Retract: true},
+		},
+	})
+	require.NoError(t, err)
+	assert.False(t, txn.Database.Select(Selection{E: donald}).Next())
 }

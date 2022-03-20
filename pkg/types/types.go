@@ -146,13 +146,15 @@ type VRef interface {
 	IsVRef()
 }
 
-func (ID) IsVRef()     {}
-func (String) IsVRef() {}
-func (Int) IsVRef()    {}
-func (Bool) IsVRef()   {}
-func (Inst) IsVRef()   {}
-func (Float) IsVRef()  {}
-func (TempID) IsVRef() {}
+func (ID) IsVRef()        {}
+func (String) IsVRef()    {}
+func (Int) IsVRef()       {}
+func (Bool) IsVRef()      {}
+func (Inst) IsVRef()      {}
+func (Float) IsVRef()     {}
+func (TempID) IsVRef()    {}
+func (LookupRef) IsVRef() {}
+func (Ident) IsVRef()     {}
 
 // TODO LookupRef as another vref type? How about Ident?
 
@@ -332,3 +334,4 @@ var ErrAttrCardinalityChange error = errors.New("attr cardinality may not change
 var ErrInvalidAttr error = errors.New("invalid datum attr")
 var ErrInvalidAttrUnique error = errors.New("attr uniqueness must be identity or value")
 var ErrInvalidAttrType error = errors.New("attr type must be valid")
+var ErrInvalidClaim error = errors.New("claim is invalid")

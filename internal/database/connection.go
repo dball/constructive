@@ -30,6 +30,13 @@ func (conn *BTreeConnection) SetClock(clock Clock) {
 	conn.clock = clock
 }
 
+type op struct {
+	e       ID
+	a       ID
+	v       Value
+	retract bool
+}
+
 // Write attempts to update the state of the connection to reflect the claims in the
 // request. Claims assert or retract datums, though unlike datums, they may refer
 // to values via Idents, LookupRefs, etc. Failure to resolve such references will
@@ -53,48 +60,127 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 	txn.ID = conn.allocID()
 	// TODO since we want to apply claim sequentially, instead of these two passes, we should
 	// resolve tempids first, probably with an unbounded iteration, then apply all claims.
-	for _, claim := range request.Claims {
-		v, ok := claim.V.(Value)
-		if !ok {
-			continue
-		}
-		a := conn.resolveARef(claim.A)
-		// TODO if we have multiple claims for the same tempid, and the first one
-		// is not for a unique identity attr, we must not allocate a new id until
-		// we have checked the other claims for the same tempid.
-		e := conn.resolveEWriteRef(txn, a, v, claim.E)
-		if claim.Retract {
-			if v != nil {
-				err = newIdx.Retract(Datum{E: e, A: a, V: v})
-			} else {
-				iter := conn.idx.Select(Selection{E: e, A: a})
-				for iter.Next() {
-					err = newIdx.Retract(iter.Value().(Datum))
-					if err != nil {
-						break
-					}
-				}
-			}
-		} else {
-			_, err = newIdx.Assert(Datum{E: e, A: a, V: v})
-		}
+
+	// The real question: are request claims processed serially or with unspecified ordering?
+	// The latter allows us flexibility in resolving claims about existing datums, but it
+	// admits ambiguous outcomes unless we are able to refuse such inputs.
+	// Ambiguous claim sets would seem to include:
+	// * Multiple asserts of the same eav are irrelevant, possibly indicative of errors?
+	// * An assert and a retract for the same eav
+	// * An assert of an eav and a retract for the same ea
+	//
+	// First we resolve all attrs and reject non-attrs. We reject nil value asserts.
+	// We resolve all e and v lookup refs and reject any missing.
+	//
+	// Then we resolve all identity attr e tempids. Note we reject the same tempid resolving to
+	// multiple ids. Then we allocate ids for the remainder and populate all v tempids, rejecting
+	// if there are any remaining (?).
+	//
+	// We could explicit expand ea retracts if we wanted to.
+	// But regardless, we then reject incompatible assert/retracts.
+	//
+	// Then we apply the changes in whatever order we feel like. Note that a tree for each
+	// index would allow them to be processed concurrently, probably a good runtime optimization.
+	// Another level of obvious partitioning would be segregating the system and maybe schema datoms, the transaction
+	// datums, and the user datums.
+	claims := make([]*Claim, 0, len(request.Claims))
+	for i := range request.Claims {
+		claim := request.Claims[i]
+		err = conn.resolveClaimRefs(txn.ID, &claim)
 		if err != nil {
 			break
 		}
+		claims = append(claims, &claim)
 	}
-	if err != nil {
-		for _, claim := range request.Claims {
-			tempID, ok := claim.V.(TempID)
+	// Resolve entity tempids
+	if err == nil {
+		for _, claim := range claims {
+			a := claim.A.(ID)
+			attr := conn.idx.AttrByID(a)
+			if attr.Unique == sys.AttrUniqueIdentity {
+				tempid, ok := claim.E.(TempID)
+				if ok {
+					v, ok := claim.V.(Value)
+					if !ok {
+						err = ErrInvalidClaim
+						break
+					}
+					iter := conn.idx.Filter(IndexAVE, Datum{A: a, V: v})
+					if iter.Next() {
+						d := iter.Value().(Datum)
+						extant, ok := txn.NewIDs[tempid]
+						if ok {
+							if extant != d.E {
+								err = ErrInvalidClaim
+								break
+							}
+						} else {
+							claim.E = d.E
+							txn.NewIDs[tempid] = d.E
+						}
+					}
+				}
+			}
+		}
+	}
+	// Allocate entity tempids
+	if err == nil {
+		for _, claim := range claims {
+			tempid, ok := claim.E.(TempID)
 			if !ok {
 				continue
 			}
-			v, ok := txn.NewIDs[tempID]
-			if !ok {
-				panic("claims with tempid values not used as entities in the request are invalid")
+			extant, ok := txn.NewIDs[tempid]
+			if ok {
+				claim.E = extant
+			} else {
+				id := conn.allocID()
+				claim.E = id
+				txn.NewIDs[tempid] = id
 			}
-			a := conn.resolveARef(claim.A)
-			e := conn.resolveEWriteRef(txn, a, v, claim.E)
-			_, err = newIdx.Assert(Datum{E: e, A: a, V: v})
+		}
+	}
+	// Resolve value tempids
+	if err == nil {
+		for _, claim := range claims {
+			tempid, ok := claim.V.(TempID)
+			if !ok {
+				continue
+			}
+			extant, ok := txn.NewIDs[tempid]
+			if !ok {
+				err = ErrInvalidClaim
+				break
+			}
+			claim.V = extant
+		}
+	}
+	if err == nil {
+		ops := make([]op, 0, len(claims))
+		// Expand ea retractions
+		for _, claim := range claims {
+			e := claim.E.(ID)
+			a := claim.A.(ID)
+			if claim.V != nil {
+				ops = append(ops, op{e, a, claim.V.(Value), claim.Retract})
+				continue
+			}
+			iter := conn.idx.Select(Selection{E: e, A: a})
+			for iter.Next() {
+				ops = append(ops, op{e, a, iter.Value().(Datum).V, true})
+			}
+		}
+		// TODO validate op consistency
+		for _, op := range ops {
+			if !op.retract {
+				_, err = newIdx.Assert(Datum{E: op.e, A: op.a, V: op.v})
+			} else {
+				err = newIdx.Retract(Datum{E: op.e, A: op.a, V: op.v})
+			}
+			if err != nil {
+				// TODO specify the failed op
+				break
+			}
 		}
 	}
 	if err == nil {
@@ -104,7 +190,6 @@ func (conn *BTreeConnection) Write(request Request) (txn Transaction, err error)
 		conn.nextID = id
 		txn.ID = ID(0)
 		txn.NewIDs = nil
-		// TODO specify the failed claim
 		return
 	}
 	conn.idx = newIdx
@@ -167,4 +252,69 @@ func (conn *BTreeConnection) resolveARef(aref ARef) ID {
 		return conn.idx.ResolveIdent(a)
 	}
 	return ID(0)
+}
+
+// resolveClaimRefs resolves the refs in the given claim
+func (conn *BTreeConnection) resolveClaimRefs(txnID ID, claim *Claim) error {
+	switch e := claim.E.(type) {
+	case LookupRef:
+		id := conn.idx.ResolveLookupRef(e)
+		if id == 0 {
+			return ErrInvalidClaim
+		}
+		claim.E = id
+	case Ident:
+		id := conn.idx.ResolveIdent(e)
+		if id == 0 {
+			return ErrInvalidClaim
+		}
+		claim.E = id
+	case TxnID:
+		claim.E = txnID
+	case ID:
+		if e == 0 {
+			return ErrInvalidClaim
+		}
+	}
+	switch a := claim.A.(type) {
+	case LookupRef:
+		id := conn.idx.ResolveLookupRef(a)
+		if id == 0 {
+			return ErrInvalidClaim
+		}
+		claim.A = id
+	case Ident:
+		id := conn.idx.ResolveIdent(a)
+		if id == 0 {
+			return ErrInvalidClaim
+		}
+		claim.A = id
+	case ID:
+		if a == 0 {
+			return ErrInvalidClaim
+		}
+	}
+	switch v := claim.V.(type) {
+	case LookupRef:
+		id := conn.idx.ResolveLookupRef(v)
+		if id == 0 {
+			return ErrInvalidClaim
+		}
+		claim.V = id
+	case Ident:
+		id := conn.idx.ResolveIdent(v)
+		if id == 0 {
+			return ErrInvalidClaim
+		}
+		claim.V = id
+	case ID:
+		if v == 0 {
+			return ErrInvalidClaim
+		}
+	case nil:
+		if !claim.Retract {
+			return ErrInvalidClaim
+		}
+	}
+	return nil
 }
