@@ -9,6 +9,8 @@ import (
 
 // Connection is a writable constructive database.
 type Connection interface {
+	// Prepare asserts the schema required to record the given records and returns the transaction.
+	Prepare(records ...interface{}) (Transaction, error)
 	// Write atomically records the given records and returns the transaction.
 	Write(records ...interface{}) (Transaction, error)
 	// Erase atomically erases the given records and returns the transaction.
@@ -21,8 +23,17 @@ type connection struct {
 	connection types.Connection
 }
 
+func (conn connection) Prepare(records ...interface{}) (Transaction, error) {
+	claims := destruct.Schema(records...)
+	txn, err := conn.connection.Write(types.Request{Claims: claims})
+	if err != nil {
+		return Transaction{}, err
+	}
+	return Transaction{ID: txn.ID, NewIDs: txn.NewIDs, Database: db{txn.Database}}, nil
+}
+
 func (conn connection) Write(records ...interface{}) (Transaction, error) {
-	claims := destruct.Destruct(records...)
+	claims := destruct.DestructOnlyData(records...)
 	txn, err := conn.connection.Write(types.Request{Claims: claims})
 	if err != nil {
 		return Transaction{}, err

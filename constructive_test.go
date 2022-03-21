@@ -29,6 +29,9 @@ type Txn struct {
 func TestEverything(t *testing.T) {
 	conn := OpenConnection()
 
+	_, err := conn.Prepare(Person{})
+	require.NoError(t, err)
+
 	// records the attribute fields of the record as datums
 	txn, err := conn.Write(Person{Name: "Donald", Age: 48})
 	require.NoError(t, err)
@@ -100,9 +103,12 @@ type Skill struct {
 
 func TestReferences(t *testing.T) {
 	conn := OpenConnection()
-	_, err := conn.Write(Skill{Name: "smith", Rank: 0.8})
+	_, err := conn.Prepare(Character{})
+	require.NoError(t, err)
+	_, err = conn.Write(Skill{Name: "smith", Rank: 0.8})
 	require.NoError(t, err)
 
+	// TODO the Focus ref is not being traversed
 	_, err = conn.Write(Character{Name: "Gerhard", Focus: Skill{Name: "smith", Rank: 0.99}})
 	require.NoError(t, err)
 }

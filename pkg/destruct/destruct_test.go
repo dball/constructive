@@ -20,7 +20,7 @@ type Person struct {
 func Test_Schema(t *testing.T) {
 	symCount = 0
 	p := Person{}
-	claims := Schema(reflect.TypeOf(p))
+	claims := typeSchema(reflect.TypeOf(p))
 	expected := []Claim{
 		{E: TempID("1"), A: sys.DbIdent, V: String("person/name")},
 		{E: TempID("1"), A: sys.AttrType, V: sys.AttrTypeString},

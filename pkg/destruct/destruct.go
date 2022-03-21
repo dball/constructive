@@ -58,7 +58,7 @@ func ParseAttrField(field reflect.StructField) (attr Attr) {
 
 var symCount uint64
 
-func Schema(typ reflect.Type) []Claim {
+func typeSchema(typ reflect.Type) []Claim {
 	n := typ.NumField()
 	claims := make([]Claim, 0, n)
 	for i := 0; i < n; i++ {
@@ -78,11 +78,13 @@ func Schema(typ reflect.Type) []Claim {
 		}
 		if attr.Type == sys.AttrTypeRef {
 			// TODO we need a types-that-have-been-schematized collection to prevent infinite cycles
-			claims = append(claims, Schema(field.Type)...)
+			claims = append(claims, typeSchema(field.Type)...)
 		}
 	}
 	return claims
 }
+
+// TODO remove destruct with schema option
 
 func Destruct(xs ...interface{}) []Claim {
 	return destruct(true, xs)
@@ -90,6 +92,31 @@ func Destruct(xs ...interface{}) []Claim {
 
 func DestructOnlyData(xs ...interface{}) []Claim {
 	return destruct(false, xs)
+}
+
+func Schema(xs ...interface{}) []Claim {
+	var claims []Claim
+	var types []reflect.Type
+	for _, x := range xs {
+		typ := reflect.TypeOf(x)
+		n := typ.NumField()
+		if claims == nil {
+			data := len(xs) * n
+			claims = make([]Claim, 0, data)
+		}
+		done := false
+		for _, t := range types {
+			if typ == t {
+				done = true
+				break
+			}
+		}
+		if !done {
+			claims = append(claims, typeSchema(typ)...)
+			types = append(types, typ)
+		}
+	}
+	return claims
 }
 
 func destruct(schema bool, xs []interface{}) []Claim {
@@ -114,7 +141,7 @@ func destruct(schema bool, xs []interface{}) []Claim {
 				}
 			}
 			if !done {
-				claims = append(claims, Schema(typ)...)
+				claims = append(claims, typeSchema(typ)...)
 				types = append(types, typ)
 			}
 		}
