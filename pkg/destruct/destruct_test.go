@@ -18,9 +18,8 @@ type Person struct {
 }
 
 type Character struct {
-	Name string `attr:"player/name,identity"`
-	// TODO component ref attr attr to indicate existence ownership
-	Focus Skill `attr:"player/focus"`
+	Name  string `attr:"player/name,identity"`
+	Focus Skill  `attr:"player/focus"`
 	// TODO map of values for set cardinality
 	// TODO slice of values for list cardinality
 }
@@ -80,6 +79,7 @@ func Test_Destruct(t *testing.T) {
 		}
 		assert.Equal(t, expected, claims)
 	})
+	symCount = 0
 	t.Run("unidentified person", func(t *testing.T) {
 		p := Person{Name: "Donald", Age: 46, Active: true}
 		claims := DestructOnlyData(p)
@@ -87,6 +87,18 @@ func Test_Destruct(t *testing.T) {
 			{E: TempID("1"), A: Ident("person/name"), V: String("Donald")},
 			{E: TempID("1"), A: Ident("person/age"), V: Int(46)},
 			{E: TempID("1"), A: Ident("person/active"), V: Bool(true)},
+		}
+		assert.Equal(t, expected, claims)
+	})
+	symCount = 0
+	t.Run("single reference", func(t *testing.T) {
+		c := Character{Name: "Gerhard", Focus: Skill{Name: "smith", Rank: 0.99}}
+		claims := DestructOnlyData(c)
+		expected := []Claim{
+			{E: TempID("1"), A: Ident("player/name"), V: String("Gerhard")},
+			{E: TempID("1"), A: Ident("player/focus"), V: TempID("2")},
+			{E: TempID("2"), A: Ident("skill/name"), V: String("smith")},
+			{E: TempID("2"), A: Ident("skill/rank"), V: Float(0.99)},
 		}
 		assert.Equal(t, expected, claims)
 	})
