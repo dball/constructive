@@ -95,6 +95,23 @@ func (idx *BTreeIndex) Assert(assertion Datum) (conclusion Datum, err error) {
 		} else {
 			idx.attrs[assertion.E] = Attr{ID: assertion.E, Cardinality: v, Ident: Ident(idx.identNames[assertion.E])}
 		}
+	case sys.AttrRefType:
+		v := assertion.V.(ID)
+		if !sys.ValidAttrRefType(v) {
+			err = ErrInvalidAttrRefType
+			return
+		}
+		attr, ok := idx.attrs[assertion.E]
+		if ok {
+			if attr.Cardinality != 0 && attr.Cardinality != v {
+				err = ErrAttrRefTypeChange
+				return
+			}
+			attr.RefType = v
+			idx.attrs[assertion.E] = attr
+		} else {
+			idx.attrs[assertion.E] = Attr{ID: assertion.E, RefType: v, Ident: Ident(idx.identNames[assertion.E])}
+		}
 	case sys.DbIdent:
 		ident := assertion.V.(String)
 		if !sys.ValidUserIdent(ident) {

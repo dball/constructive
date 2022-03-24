@@ -77,6 +77,8 @@ func typeSchema(typ reflect.Type) []Claim {
 			claims = append(claims, Claim{E: e, A: sys.AttrUnique, V: attr.Unique})
 		}
 		if attr.Type == sys.AttrTypeRef {
+			// TODO component should be the default, but we must allow foreign references
+			claims = append(claims, Claim{E: e, A: sys.AttrRefType, V: sys.AttrRefTypeComponent})
 			// TODO we need a types-that-have-been-schematized collection to prevent infinite cycles
 			claims = append(claims, typeSchema(field.Type)...)
 		}

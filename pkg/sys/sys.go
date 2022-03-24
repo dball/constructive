@@ -8,24 +8,26 @@ import (
 )
 
 const (
-	DbId                = "sys/db/id"
-	DbIdent             = ID(1)
-	AttrType            = ID(2)
-	AttrUnique          = ID(3)
-	AttrCardinality     = ID(4)
-	Tx                  = ID(5)
-	TxAt                = ID(6)
-	AttrUniqueIdentity  = ID(7)
-	AttrUniqueValue     = ID(8)
-	AttrCardinalityOne  = ID(9)
-	AttrCardinalityMany = ID(10)
-	AttrTypeRef         = ID(11)
-	AttrTypeString      = ID(12)
-	AttrTypeInt         = ID(13)
-	AttrTypeBool        = ID(14)
-	AttrTypeInst        = ID(15)
-	AttrTypeFloat       = ID(16)
-	FirstUserID         = ID(0x100000)
+	DbId                 = "sys/db/id"
+	DbIdent              = ID(1)
+	AttrType             = ID(2)
+	AttrUnique           = ID(3)
+	AttrCardinality      = ID(4)
+	Tx                   = ID(5)
+	TxAt                 = ID(6)
+	AttrUniqueIdentity   = ID(7)
+	AttrUniqueValue      = ID(8)
+	AttrCardinalityOne   = ID(9)
+	AttrCardinalityMany  = ID(10)
+	AttrTypeRef          = ID(11)
+	AttrTypeString       = ID(12)
+	AttrTypeInt          = ID(13)
+	AttrTypeBool         = ID(14)
+	AttrTypeInst         = ID(15)
+	AttrTypeFloat        = ID(16)
+	AttrRefType          = ID(17)
+	AttrRefTypeComponent = ID(18)
+	FirstUserID          = ID(0x100000)
 )
 
 var epoch time.Time
@@ -52,6 +54,9 @@ var Datums []Datum = []Datum{
 	{E: AttrCardinality, A: AttrType, V: AttrTypeRef, T: Tx},
 	{E: AttrCardinalityOne, A: DbIdent, V: String("sys/attr/cardinality/one"), T: Tx},
 	{E: AttrCardinalityMany, A: DbIdent, V: String("sys/attr/cardinality/many"), T: Tx},
+	{E: AttrRefType, A: DbIdent, V: String("sys/attr/ref/type"), T: Tx},
+	{E: AttrRefType, A: AttrType, V: AttrTypeRef, T: Tx},
+	{E: AttrRefTypeComponent, A: DbIdent, V: String("sys/attr/ref/type/component"), T: Tx},
 	{E: Tx, A: TxAt, V: Inst(epoch), T: Tx},
 }
 
@@ -61,6 +66,7 @@ var Attrs map[ID]Attr = map[ID]Attr{
 	AttrUnique:      {ID: AttrUnique, Type: AttrTypeRef, Ident: Ident("sys/attr/unique")},
 	AttrType:        {ID: AttrType, Type: AttrTypeRef, Ident: Ident("sys/attr/type")},
 	AttrCardinality: {ID: AttrCardinality, Type: AttrTypeRef, Ident: Ident("sys/attr/cardinality")},
+	AttrRefType:     {ID: AttrRefType, Type: AttrTypeRef, Ident: Ident("sys/attr/ref/type")},
 	TxAt:            {ID: TxAt, Type: AttrTypeInst, Ident: Ident("sys/tx/at")},
 }
 
@@ -114,6 +120,14 @@ func ValidAttrCardinality(id ID) bool {
 		return false
 	}
 	return true
+}
+
+func ValidAttrRefType(id ID) bool {
+	switch id {
+	case AttrRefTypeComponent:
+		return true
+	}
+	return false
 }
 
 func ValidUserIdent(value String) bool {

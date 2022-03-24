@@ -36,6 +36,8 @@ type Attr struct {
 	Cardinality ID `attr:"sys/attr/cardinality"`
 	// Unique specifies the uniqueness of the attribute's value.
 	Unique ID `attr:"sys/db/unique"`
+	// RefType specifies the reference type, if this is a special reference type.
+	RefType ID `attr:"sys/attr/ref/type"`
 }
 
 // Value is an immutable scalar.
@@ -335,3 +337,5 @@ var ErrInvalidAttr error = errors.New("invalid datum attr")
 var ErrInvalidAttrUnique error = errors.New("attr uniqueness must be identity or value")
 var ErrInvalidAttrType error = errors.New("attr type must be valid")
 var ErrInvalidClaim error = errors.New("claim is invalid")
+var ErrInvalidAttrRefType = errors.New("attr ref type must be valid")
+var ErrAttrRefTypeChange error = errors.New("attr ref type may not change")
