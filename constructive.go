@@ -33,7 +33,7 @@ func (conn connection) Prepare(records ...interface{}) (Transaction, error) {
 }
 
 func (conn connection) Write(records ...interface{}) (Transaction, error) {
-	claims := destruct.DestructOnlyData(records...)
+	claims := destruct.Destruct(records...)
 	txn, err := conn.connection.Write(types.Request{Claims: claims})
 	if err != nil {
 		return Transaction{}, err
@@ -42,7 +42,7 @@ func (conn connection) Write(records ...interface{}) (Transaction, error) {
 }
 
 func (conn connection) Erase(records ...interface{}) (Transaction, error) {
-	claims := destruct.DestructOnlyData(records...)
+	claims := destruct.Destruct(records...)
 	for i, claim := range claims {
 		claim.Retract = true
 		claims[i] = claim

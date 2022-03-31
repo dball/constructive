@@ -86,14 +86,8 @@ func typeSchema(typ reflect.Type) []Claim {
 	return claims
 }
 
-// TODO remove destruct with schema option
-
 func Destruct(xs ...interface{}) []Claim {
-	return destruct(true, xs)
-}
-
-func DestructOnlyData(xs ...interface{}) []Claim {
-	return destruct(false, xs)
+	return destruct(xs)
 }
 
 func Schema(xs ...interface{}) []Claim {
@@ -121,31 +115,14 @@ func Schema(xs ...interface{}) []Claim {
 	return claims
 }
 
-func destruct(schema bool, xs []interface{}) []Claim {
+func destruct(xs []interface{}) []Claim {
 	var claims []Claim
-	var types []reflect.Type
 	for _, x := range xs {
 		typ := reflect.TypeOf(x)
 		n := typ.NumField()
 		if claims == nil {
 			data := len(xs) * n
-			if schema {
-				data += n
-			}
 			claims = make([]Claim, 0, data)
-		}
-		if schema {
-			done := false
-			for _, t := range types {
-				if typ == t {
-					done = true
-					break
-				}
-			}
-			if !done {
-				claims = append(claims, typeSchema(typ)...)
-				types = append(types, typ)
-			}
 		}
 		var id ID
 		xclaims := make([]Claim, 0, n)
@@ -180,11 +157,12 @@ func destruct(schema bool, xs []interface{}) []Claim {
 				case time.Time:
 					vref = Inst(typed)
 				default:
-					xxclaims := destruct(schema, []interface{}{typed})
+					xxclaims := destruct([]interface{}{typed})
 					if len(xxclaims) == 0 {
 						panic("TODO do we assign a tempid to the ref or what")
 					}
-					switch ee := xclaims[0].E.(type) {
+					xclaims = append(xclaims, xxclaims...)
+					switch ee := xxclaims[0].E.(type) {
 					case ID:
 						vref = ee
 					case TempID:
@@ -207,6 +185,9 @@ func destruct(schema bool, xs []interface{}) []Claim {
 		}
 		if id != ID(0) {
 			for i := range xclaims {
+				if xclaims[i].E != ID(0) {
+					continue
+				}
 				xclaims[i].E = id
 			}
 		} else {
@@ -214,6 +195,9 @@ func destruct(schema bool, xs []interface{}) []Claim {
 			// TODO note we could use a different TempID type here and keep the whole string domain available to our callers
 			tempID := TempID(fmt.Sprintf("%d", symCount))
 			for i := range xclaims {
+				if xclaims[i].E != ID(0) {
+					continue
+				}
 				xclaims[i].E = tempID
 			}
 		}

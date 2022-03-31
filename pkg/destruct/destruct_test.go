@@ -71,7 +71,7 @@ func Test_Destruct(t *testing.T) {
 	symCount = 0
 	t.Run("identified person", func(t *testing.T) {
 		p := Person{ID: 1, Name: "Donald", Age: 46, Active: true}
-		claims := DestructOnlyData(p)
+		claims := Destruct(p)
 		expected := []Claim{
 			{E: ID(1), A: Ident("person/name"), V: String("Donald")},
 			{E: ID(1), A: Ident("person/age"), V: Int(46)},
@@ -82,7 +82,7 @@ func Test_Destruct(t *testing.T) {
 	symCount = 0
 	t.Run("unidentified person", func(t *testing.T) {
 		p := Person{Name: "Donald", Age: 46, Active: true}
-		claims := DestructOnlyData(p)
+		claims := Destruct(p)
 		expected := []Claim{
 			{E: TempID("1"), A: Ident("person/name"), V: String("Donald")},
 			{E: TempID("1"), A: Ident("person/age"), V: Int(46)},
@@ -93,12 +93,12 @@ func Test_Destruct(t *testing.T) {
 	symCount = 0
 	t.Run("single reference", func(t *testing.T) {
 		c := Character{Name: "Gerhard", Focus: Skill{Name: "smith", Rank: 0.99}}
-		claims := DestructOnlyData(c)
+		claims := Destruct(c)
 		expected := []Claim{
-			{E: TempID("1"), A: Ident("player/name"), V: String("Gerhard")},
-			{E: TempID("1"), A: Ident("player/focus"), V: TempID("2")},
-			{E: TempID("2"), A: Ident("skill/name"), V: String("smith")},
-			{E: TempID("2"), A: Ident("skill/rank"), V: Float(0.99)},
+			{E: TempID("2"), A: Ident("player/name"), V: String("Gerhard")},
+			{E: TempID("1"), A: Ident("skill/name"), V: String("smith")},
+			{E: TempID("1"), A: Ident("skill/rank"), V: Float(0.99)},
+			{E: TempID("2"), A: Ident("player/focus"), V: TempID("1")},
 		}
 		assert.Equal(t, expected, claims)
 	})
